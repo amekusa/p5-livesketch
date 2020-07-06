@@ -1,14 +1,14 @@
 {
-  "name": "p5js-sandbox",
+  "name": "p5-livesketch",
   "version": "0.1.0",
-  "description": "A p5.js playground which supports realtime preview",
+  "description": "p5.js playground which supports live preview and es6 module loading",
   "main": "gulpfile.js",
   "scripts": {
     "test": "mocha"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/amekusa/p5js-sandbox.git"
+    "url": "git+https://github.com/amekusa/p5-livesketch.git"
   },
   "keywords": [
     "p5js"
@@ -17,9 +17,9 @@
   "license": "ISC",
   "private": true,
   "bugs": {
-    "url": "https://github.com/amekusa/p5js-sandbox/issues"
+    "url": "https://github.com/amekusa/p5-livesketch/issues"
   },
-  "homepage": "https://github.com/amekusa/p5js-sandbox#readme",
+  "homepage": "https://github.com/amekusa/p5-livesketch#readme",
   "dependencies": {
     "browser-sync": "^2.26.7",
     "chalk": "^4.1.0",
