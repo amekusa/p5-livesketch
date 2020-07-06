@@ -1,5 +1,5 @@
 /*!
- * p5js-sandbox builder
+ * p5-livesketch builder
  * @author amekusa (https://amekusa.com)
  */
 
