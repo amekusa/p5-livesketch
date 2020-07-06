@@ -1,0 +1,12 @@
+/node_modules/
+/app/
+/dist/
+
+/sketches/*
+!/sketches/example.js
+
+/sketches/assets/*
+!/sketches/assets/example-image.jpg
+
+/sketches/lib/*
+!/sketches/lib/ExampleClass.js

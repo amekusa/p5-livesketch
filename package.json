@@ -1,0 +1,36 @@
+{
+  "name": "p5js-sandbox",
+  "version": "0.1.0",
+  "description": "A p5.js playground which supports realtime preview",
+  "main": "gulpfile.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amekusa/p5js-sandbox.git"
+  },
+  "keywords": [
+    "p5js"
+  ],
+  "author": "amekusa",
+  "license": "ISC",
+  "private": true,
+  "bugs": {
+    "url": "https://github.com/amekusa/p5js-sandbox/issues"
+  },
+  "homepage": "https://github.com/amekusa/p5js-sandbox#readme",
+  "dependencies": {
+    "browser-sync": "^2.26.7",
+    "chalk": "^4.1.0",
+    "del": "^5.1.0",
+    "flex-params": "^2.2.0",
+    "gulp": "^4.0.2",
+    "gulp-if": "^3.0.0",
+    "gulp-rename": "^2.0.0",
+    "inquirer": "^7.3.0",
+    "p5": "^1.0.0",
+    "rollup": "^2.19.0",
+    "yargs": "^15.4.0"
+  }
+}
