@@ -23,7 +23,8 @@ const // Gulp modules
 	$rename  = require('gulp-rename');
 
 const // Local modules
-	Task = require('./lib/Task');
+	Task = require('./lib/Task'),
+	logger = require('./lib/Logger').global;
 
 // Directory structure
 const dirs = {
@@ -86,12 +87,12 @@ function error(name, msg = '') {
 }
 
 function log(...args) {
-	console.log(...args);
+	logger.log(...args);
 }
 
 function debug(...args) {
 	if (!argv.dev) return;
-	console.debug(...args);
+	logger.debug(...args);
 }
 
  ////////////
