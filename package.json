@@ -4,7 +4,11 @@
   "description": "p5.js playground which supports live preview and es6 module loading",
   "main": "gulpfile.js",
   "scripts": {
-    "app": "gulp app -w -c"
+    "app":    "gulp app -w -c",
+    "app:s":  "gulp app -w -c -b safari",
+    "app:ff": "gulp app -w -c -b firefox",
+    "app:gc": "gulp app -w -c -b 'google chrome'",
+    "build":  "gulp build -c"
   },
   "repository": {
     "type": "git",

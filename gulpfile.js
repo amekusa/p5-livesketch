@@ -14,7 +14,7 @@ const // NPM modules
 	chalk    = require('chalk'),
 	inquirer = require('inquirer'),
 	del      = require('del'),
-	browser  = require('browser-sync'),
+	bsync    = require('browser-sync'),
 	rollup   = require('rollup');
 
 const // Gulp modules
@@ -40,13 +40,19 @@ const argv = yargs.options({
 	sketch: {
 		alias:       's',
 		type:        'string',
-		description: 'The sketch to run or compile'
+		description: 'Sketch to run or compile'
 	},
 	theme: {
 		alias:       't',
 		type:        'string',
 		default:     dirs.themes+'/default',
-		description: 'The theme directory to use'
+		description: 'Theme directory'
+	},
+	browser: {
+		alias:       'b',
+		type:        'string',
+		default:     'default',
+		description: 'Browser to open the app'
 	},
 	clean: {
 		alias:       'c',
@@ -271,8 +277,9 @@ const build = new Task('build', [buildSketch, buildTheme, buildP5]);
  * @see https://www.browsersync.io/docs/options
  */
 const app = new Task('app', (resolve, reject) => {
-	return browser.init({
+	return bsync.init({
 		watch: true, // This should activate live reload
+		browser: argv.browser,
 		server: {
 			baseDir: dirs.app,
 			index: 'index.html'
