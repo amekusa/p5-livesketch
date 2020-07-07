@@ -4,7 +4,7 @@
   "description": "p5.js playground which supports live preview and es6 module loading",
   "main": "gulpfile.js",
   "scripts": {
-    "test": "mocha"
+    "app": "gulp app -w -c"
   },
   "repository": {
     "type": "git",
