@@ -34,11 +34,6 @@ const dirs = {
 	themes:  'themes',
 	modules: 'node_modules'
 }
-// Resolved paths
-const resolved = {
-	sketch: '',
-	theme: ''
-}
 // Commandline options
 // @see https://yargs.js.org/docs/#api-reference-optionskey-opt
 const argv = yargs.options({
