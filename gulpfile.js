@@ -119,7 +119,8 @@ const resolveSketch = new Task('resolve:sketch', (resolve, reject) => {
 	}
 	if (!options.length) return reject(error('SketchMissing'));
 	if (options.length == 1) return resolve(path.join(dirs.src, options[0]));
-	logger.suppress();
+
+	logger.suppress(true);
 	return inquirer.prompt({
 		type:    'list',
 		name:    'sketch',
@@ -127,7 +128,7 @@ const resolveSketch = new Task('resolve:sketch', (resolve, reject) => {
 		choices: options
 
 	}).then(answer => {
-		logger.suppress(false);
+		logger.unsuppress();
 		return resolve(path.join(dirs.src, answer.sketch));
 	});
 });
