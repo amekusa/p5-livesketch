@@ -2,24 +2,24 @@
   "name": "p5-livesketch",
   "version": "0.1.0",
   "description": "p5.js playground which supports live preview and es6 module loading",
-  "main": "gulpfile.js",
-  "scripts": {
-    "app":    "gulp app -w -c",
-    "app:s":  "gulp app -w -c -b safari",
-    "app:ff": "gulp app -w -c -b firefox",
-    "app:gc": "gulp app -w -c -b 'google chrome'",
-    "build":  "gulp build -c"
+  "main": "index.js",
+  "bin": {
+    "p5live": "index.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/amekusa/p5-livesketch.git"
   },
   "keywords": [
-    "p5js"
+    "p5",
+    "p5.js",
+    "art",
+    "design",
+    "game dev",
+    "sandbox"
   ],
   "author": "amekusa",
   "license": "ISC",
-  "private": true,
   "bugs": {
     "url": "https://github.com/amekusa/p5-livesketch/issues"
   },
@@ -36,5 +36,8 @@
     "p5": "^1.0.0",
     "rollup": "^2.19.0",
     "yargs": "^15.4.0"
-  }
+  },
+  "bundledDependencies": [
+    "p5"
+  ]
 }
