@@ -1,6 +1,6 @@
 {
   "name": "p5-livesketch",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "p5.js playground which supports live preview and es6 module loading",
   "main": "index.js",
   "files": [
