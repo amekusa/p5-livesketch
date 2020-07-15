@@ -30,7 +30,8 @@ const // Local modules
 
 const // Shortcuts
 	ds   = path.sep,
-	join = path.join;
+	join = path.join,
+	{ red, green, blue, cyan, magenta, yellow, gray } = chalk;
 
 // Determine local or global mode
 if (proc.cwd().startsWith(__dirname+ds)) proc.chdir(__dirname);
@@ -52,56 +53,63 @@ if (local) {
 	dirs.dist = cwd;
 }
 
-// Commandline settings
-const argv = yargs.scriptName('p5live')
-	.usage('$0 <command> [options]')
-	.command('build', 'Build the app')
-	.command('app'  , 'Run the app')
-	.command('clean', 'Clean the files')
-	.options({
-		sketch: {
-			alias:       ['src', 's'],
-			type:        'string',
-			description: 'Sketch to run or compile'
-		},
-		theme: {
-			alias:       't',
-			type:        'string',
-			default:     join(dirs.themes, 'default'),
-			description: 'Theme directory'
-		},
-		app: {
-			alias:       'a',
-			type:        'string',
-			default:     dirs.app,
-			description: 'App directory'
-		},
-		browser: {
-			alias:       'b',
-			type:        'string',
-			default:     'default',
-			description: 'Browser to open the app'
-		},
-		clean: {
-			alias:       'c',
-			type:        'boolean',
-			default:     false,
-			description: 'Clean mode'
-		},
-		watch: {
-			alias:       'w',
-			type:        'boolean',
-			default:     false,
-			description: 'Watch mode'
-		},
-		dev: {
-			alias:       'd',
-			type:        'boolean',
-			default:     false,
-			description: 'Development mode'
-		}
+////  Commandline settings  ////////
 
-	}).argv;
+const options = {
+	sketch: {
+		alias: ['src', 's'],
+		type:  'string',
+		desc:  'The sketch file to build'
+	},
+	theme: {
+		alias:   't',
+		type:    'string',
+		default: join(dirs.themes, 'default'),
+		desc:    'The theme to handle the sketch'
+	},
+	app: {
+		alias:   'a',
+		type:    'string',
+		default: dirs.app,
+		desc:    'The directory where the app is/was deployed to'
+	},
+	browser: {
+		alias:   'b',
+		type:    'string',
+		default: 'default',
+		desc:    'The browser to open the app'
+	},
+	clean: {
+		alias: 'c',
+		type:  'boolean',
+		desc:  'Clean mode'
+	},
+	watch: {
+		alias: 'w',
+		type:  'boolean',
+		desc:  'Watch mode'
+	}
+};
+const argv = yargs.scriptName('p5live')
+	.usage(`$0 <sketch> [options]`, `Builds & Runs a sketch with live preview`, yargs => {
+		yargs.positional('sketch', {
+			desc: `The sketch file to build & run`,
+			type: 'string'
+		})
+		.option('theme', options.theme)
+	})
+	.usage(`$0 <command> [options]`)
+	.command('build', `Builds the app`, {
+		sketch: options.sketch,
+		theme:  options.theme,
+		app:    options.app
+	})
+	.command('app', `Runs the app`, {
+		app:     options.app,
+		browser: options.browser
+	})
+	.command('clean', `Cleans the files`)
+	.argv;
 
 ////  Utilities  ////////
 
@@ -111,17 +119,18 @@ function error(name, msg = '') {
 		NoSuchSketch:  `No such sketch`,
 		ThemeMissing:  `Theme missing`
 	}[name] + (msg ? ` ${msg}` : ''));
-	r.name = chalk.red(name);
+	r.name = red(name);
 	return r;
 }
 
-function log(...args) {
-	logger.log(...args);
-}
-
-function debug(...args) {
-	if (!argv.dev) return;
-	logger.debug(...args);
+function handleError(err) {
+	logger.suppress();
+	let msg;
+	if (typeof err == 'string') msg = err;
+	else if (err instanceof Error) msg = err.message;
+	else msg = `An exception occurred`;
+	logger._error(`[${red('Error')}] ${msg}`);
+	// TODO: Wait for all the running tasks finish
 }
 
 function find(file, dirs) {
@@ -137,7 +146,7 @@ function find(file, dirs) {
 ////  Tasks  ////////
 
 const cleanApp = new Task('clean:app', (resolve, reject) => {
-	return del([dirs.app+'/**', '!'+dirs.app]).then(resolve).catch(reject);
+	return del([join(dirs.app, '**'), dirs.app]).then(resolve).catch(reject);
 });
 
 /* XXX
@@ -218,16 +227,16 @@ const buildSketchRollup = new Task('build:sketch:rollup', (resolve, reject) => {
 		 **/
 	};
 	if (argv.watch) {
-		let expr = `[${chalk.cyan('Rollup')}]`;
+		let expr = `[${blue('Rollup')}]`;
 		let options = input;
 		options.output = output;
 		return rollup.watch(options).on('event', ev => {
 			switch (ev.code) {
 			case 'START':
-				log(expr+` Watching files...`);
+				logger.log(expr+` Watching files...`);
 				break;
 			case 'BUNDLE_END':
-				log(expr+` Build ${chalk.green('Success')}`, ev.result.watchFiles);
+				logger.log(expr+` Build ${green('Success')}`, ev.result.watchFiles);
 				break;
 			case 'END':
 				return resolve(ev);
@@ -251,7 +260,7 @@ if (argv.clean) buildSketchRollup.addDep(cleanApp);
 const buildSketchWebpack = new Task('build:sketch:webpack', (resolve, reject) => {
 	const webpack  = require('webpack-stream');
 	let config = {
-		mode: argv.dev ? 'development' : 'production',
+		mode: 'development',
 		resolve: {
 			alias: {
 				sketches: path.resolve(__dirname, 'sketches/'),
@@ -295,7 +304,7 @@ const buildP5 = new Task('build:p5', (resolve, reject) => {
 	return $.src([
 			join(base, 'p5.min.js'),
 			join(base, 'addons', '*.min.js')
-		], {base: base})
+		], { base: base })
 		.pipe($.dest(dirs.app))
 		.on('end', resolve);
 });
@@ -322,19 +331,28 @@ const app = new Task('app', (resolve, reject) => {
 });
 if (argv.watch) app.addDep(build);
 
-//// Run the commands ////////
+////  Run the commands  ////////
 
 if (argv._.length) {
 	const cmd = argv._[0];
-	const commands = {
-		build: build,
-		app:   app,
-		clean: clean
-	};
-	if (cmd in commands) commands[cmd]();
-	else {
-		logger.error(`[${chalk.red('Error')}] No such command as '${cmd}'\n`);
+	const commands = { build, app, clean };
+	if (cmd in commands) {
+		commands[cmd]().catch(err => {
+			handleError(err);
+		});
+
+	} else { // XXX: This block might never be reached
+		logger.error(`[${red('Error')}] No such command as '${cmd}'\n`);
 		yargs.showHelp();
 	}
+
+} else if (argv.sketch) {
+	if (!argv.watch) {
+		argv.watch = true;
+		app.addDep(build);
+	}
+	app().catch(err => {
+		handleError(err);
+	});
 
 } else yargs.showHelp();
