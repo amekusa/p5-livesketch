@@ -31,7 +31,7 @@ const // Local modules
 const // Shortcuts
 	ds   = path.sep,
 	join = path.join,
-	{ red, green, blue, cyan, magenta, yellow, gray } = chalk;
+	{ red, green, blue, cyan, magenta, yellow, gray, white, black } = chalk;
 
 // Determine local or global mode
 if (proc.cwd().startsWith(__dirname+ds)) proc.chdir(__dirname);
@@ -53,65 +53,80 @@ if (local) {
 	dirs.dist = cwd;
 }
 
-////  Commandline settings  ////////
+ ///////////////////////////
+////  Commandline settings
 
 const options = {
 	sketch: {
 		alias: ['src', 's'],
 		type:  'string',
-		desc:  'The sketch file to build'
+		desc:  `The sketch file to build`
 	},
 	theme: {
 		alias:   't',
 		type:    'string',
 		default: join(dirs.themes, 'default'),
-		desc:    'The theme to handle the sketch'
+		desc:    `The theme to handle the sketch`
 	},
 	app: {
 		alias:   'a',
 		type:    'string',
 		default: dirs.app,
-		desc:    'The directory where the app is/was deployed to'
+		desc:    `The directory where the app is/was built`
 	},
 	browser: {
 		alias:   'b',
 		type:    'string',
 		default: 'default',
-		desc:    'The browser to open the app'
-	},
-	clean: {
-		alias: 'c',
-		type:  'boolean',
-		desc:  'Clean mode'
+		desc:    `The browser to open the app`
 	},
 	watch: {
 		alias: 'w',
 		type:  'boolean',
-		desc:  'Watch mode'
+		desc:  `Watch mode`
+	},
+	clean: {
+		alias: 'c',
+		type:  'boolean',
+		desc:  `Clean mode`
+	},
+	yes: {
+		alias: 'y',
+		type:  'boolean',
+		desc:  `Automatically answers "yes" to any confirmation prompts`
 	}
 };
 const argv = yargs.scriptName('p5live')
-	.usage(`$0 <sketch> [options]`, `Builds & Runs a sketch with live preview`, yargs => {
+	.usage(`$0 [sketch] [options]`, `Builds & Runs a sketch with live preview`, yargs => {
 		yargs.positional('sketch', {
-			desc: `The sketch file to build & run`,
-			type: 'string'
+			type: 'string',
+			desc: `The sketch file to build & run`
 		})
-		.option('theme', options.theme)
+		.options({
+			theme:   options.theme,
+			app:     options.app,
+			browser: options.browser,
+			clean:   options.clean,
+			yes:     options.yes
+		});
 	})
 	.usage(`$0 <command> [options]`)
-	.command('build', `Builds the app`, {
+	.command('build [options]', `Builds the app`, {
 		sketch: options.sketch,
 		theme:  options.theme,
-		app:    options.app
+		app:    options.app,
+		watch:  options.watch,
+		clean:  options.clean,
+		yes:    options.yes
 	})
-	.command('app', `Runs the app`, {
-		app:     options.app,
-		browser: options.browser
+	.command('app   [options]', `Runs the app`, options)
+	.command('clean [options]', `Cleans the files`, {
+		yes: options.yes
 	})
-	.command('clean', `Cleans the files`)
 	.argv;
 
-////  Utilities  ////////
+ ////////////////
+////  Utilities
 
 function error(name, msg = '') {
 	let r = new Error({
@@ -143,10 +158,30 @@ function find(file, dirs) {
 	return false;
 }
 
-////  Tasks  ////////
+function cleanDir(dir, resolve, reject) {
+	if (!fs.existsSync(dir)) return resolve();
+	if (argv.yes) return del([join(dir, '**'), dir]).then(resolve).catch(reject); // No confirm
+
+	logger.suppress(true);
+	return inquirer.prompt({
+		type:    'confirm',
+		name:    'yes',
+		default: false,
+		message: `Are you sure you want to ${chalk.underline('delete')} "${white(dir)}" ?`
+
+	}).then(answer => {
+		logger.unsuppress();
+		return answer.yes
+			? del([join(dir, '**'), dir]).then(resolve).catch(reject)
+			: reject(`Task Canceled`);
+	});
+}
+
+ ////////////
+////  Tasks
 
 const cleanApp = new Task('clean:app', (resolve, reject) => {
-	return del([join(dirs.app, '**'), dirs.app]).then(resolve).catch(reject);
+	return cleanDir(dirs.app, resolve, reject);
 });
 
 /* XXX
@@ -329,11 +364,12 @@ const app = new Task('app', (resolve, reject) => {
 		}
 	}, resolve);
 });
-if (argv.watch) app.addDep(build);
+if (argv.sketch || argv.theme || argv.watch) app.addDep(build);
 
-////  Run the commands  ////////
+ /////////////////////////////////////
+////  Run the tasks via command line
 
-if (argv._.length) {
+if (argv._.length) { // Subcommands
 	const cmd = argv._[0];
 	const commands = { build, app, clean };
 	if (cmd in commands) {
@@ -346,7 +382,7 @@ if (argv._.length) {
 		yargs.showHelp();
 	}
 
-} else if (argv.sketch) {
+} else { // Default command
 	if (!argv.watch) {
 		argv.watch = true;
 		app.addDep(build);
@@ -354,5 +390,4 @@ if (argv._.length) {
 	app().catch(err => {
 		handleError(err);
 	});
-
-} else yargs.showHelp();
+}
