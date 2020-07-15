@@ -1,6 +1,6 @@
 {
   "name": "p5-livesketch",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A command line builder for p5.js sketches, which supports live preview and ES module loading",
   "main": "index.js",
   "files": [
