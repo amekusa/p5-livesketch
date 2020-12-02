@@ -33,6 +33,7 @@
   "homepage": "https://github.com/amekusa/p5-livesketch#readme",
   "dependencies": {
     "browser-sync": "^2.26.7",
+    "cadept": "^1.0.0",
     "chalk": "^4.1.0",
     "del": "^5.1.0",
     "flex-params": "^2.2.0",

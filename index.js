@@ -12,6 +12,8 @@ const // Built-in modules
 	util = require('util'); // Utilities
 
 const // NPM modules
+	console  = require('conso1e').global(),
+	Task     = require('cadept'),
 	yargs    = require('yargs'),
 	chalk    = require('chalk'),
 	inquirer = require('inquirer'),
@@ -23,10 +25,6 @@ const // Gulp modules
 	$        = require('gulp'),
 	$if      = require('gulp-if'),
 	$rename  = require('gulp-rename');
-
-const // Local modules
-	Task   = require('./lib/Task'),
-	logger = require('./lib/Logger').global;
 
 const // Shortcuts
 	ds   = path.sep,
@@ -110,7 +108,6 @@ const argv = yargs.scriptName('p5live')
 			yes:     options.yes
 		});
 	})
-	.usage(`$0 <command> [options]`)
 	.command('build [options]', `Builds the app`, {
 		sketch: options.sketch,
 		theme:  options.theme,
@@ -139,12 +136,12 @@ function error(name, msg = '') {
 }
 
 function handleError(err) {
-	logger.suppress();
+	console.suppress();
 	let msg;
 	if (typeof err == 'string') msg = err;
 	else if (err instanceof Error) msg = err.message;
 	else msg = `An exception occurred`;
-	logger._error(`[${red('Error')}] ${msg}`);
+	console._error(`[${red('Error')}] ${msg}`);
 	// TODO: Wait for all the running tasks finish
 }
 
@@ -162,7 +159,7 @@ function cleanDir(dir, resolve, reject) {
 	if (!fs.existsSync(dir)) return resolve();
 	if (argv.yes) return del([join(dir, '**'), dir]).then(resolve).catch(reject); // No confirm
 
-	logger.suppress(true);
+	console.suppress(true);
 	return inquirer.prompt({
 		type:    'confirm',
 		name:    'yes',
@@ -170,7 +167,7 @@ function cleanDir(dir, resolve, reject) {
 		message: `Are you sure you want to ${chalk.underline('delete')} "${white(dir)}" ?`
 
 	}).then(answer => {
-		logger.unsuppress();
+		console.unsuppress();
 		return answer.yes
 			? del([join(dir, '**'), dir]).then(resolve).catch(reject)
 			: reject(`Task Canceled`);
@@ -180,22 +177,32 @@ function cleanDir(dir, resolve, reject) {
  ////////////
 ////  Tasks
 
-const cleanApp = new Task('clean:app', (resolve, reject) => {
+Task.options({
+	defaultConsole: console,
+	defaultLogLevel: 'all'
+});
+
+const tm = Task.Manager.global();
+
+/**
+ * @task clean
+ * Cleans up the generated files.
+ */
+const clean = tm.newTask('clean', ['clean:app']);
+
+/**
+ * @task clean:app
+ * Cleans up 'app' directory.
+ */
+tm.newTask('clean:app', (resolve, reject) => {
 	return cleanDir(dirs.app, resolve, reject);
 });
 
-/* XXX
-const cleanDist = new Task('clean:dist', (resolve, reject) => {
-	return del([dirs.dist+'/**', '!'+dirs.dist]).then(resolve).catch(reject);
-});
-*/
-
-const clean = new Task('clean', [cleanApp]);
-
 /**
- * Resolves the path to the sketch to build
+ * @task resolve:sketch
+ * Resolves the path to the sketch to build.
  */
-const resolveSketch = new Task('resolve:sketch', (resolve, reject) => {
+const sketch = tm.newTask('resolve:sketch', (resolve, reject) => {
 	if (argv.sketch) {
 		let sketch = find(argv.sketch, dirs.src);
 		return sketch ? resolve(sketch) : reject(error('NoSuchSketch', `as ${argv.sketch}`));
@@ -211,7 +218,7 @@ const resolveSketch = new Task('resolve:sketch', (resolve, reject) => {
 	if (!options.length) return reject(error('SketchMissing'));
 	if (options.length == 1) return resolve(join(dirs.src, options[0]));
 
-	logger.suppress(true);
+	console.suppress(true);
 	return inquirer.prompt({
 		type:    'list',
 		name:    'sketch',
@@ -219,27 +226,35 @@ const resolveSketch = new Task('resolve:sketch', (resolve, reject) => {
 		choices: options
 
 	}).then(answer => {
-		logger.unsuppress();
+		console.unsuppress();
 		return resolve(join(dirs.src, answer.sketch));
 	});
 });
 
 /**
- * Resolves the path to the theme
+ * @task resolve:theme
+ * Resolves the path to the theme.
  */
-const resolveTheme = new Task('resolve:theme', (resolve, reject) => {
+const theme = tm.newTask('resolve:theme', (resolve, reject) => {
 	let theme = find(argv.theme, dirs.themes);
 	return theme ? resolve(theme) : reject(error('ThemeMissing'));
 });
 
 /**
- * Build the sketch with rollup
+ * @task build
+ * Builds the app.
+ */
+const build = tm.newTask('build', ['build:sketch', 'build:theme', 'build:p5']);
+
+/**
+ * @task build:sketch:rollup
+ * Builds the sketch with rollup.
  * @requires rollup
  * @see https://rollupjs.org/guide/en/
  */
-const buildSketchRollup = new Task('build:sketch:rollup', (resolve, reject) => {
+var t = tm.newTask('build:sketch:rollup', (resolve, reject) => {
 	let input = {
-		input: resolveSketch.resolved,
+		input: sketch.resolved,
 		context: 'window', // Maybe unnecessary
 		treeshake: false
 		/* NOTE: Treeshaking is the rollup's feature that performs
@@ -268,10 +283,10 @@ const buildSketchRollup = new Task('build:sketch:rollup', (resolve, reject) => {
 		return rollup.watch(options).on('event', ev => {
 			switch (ev.code) {
 			case 'START':
-				logger.log(expr+` Watching files...`);
+				console.log(expr+` Watching files...`);
 				break;
 			case 'BUNDLE_END':
-				logger.log(expr+` Build ${green('Success')}`, ev.result.watchFiles);
+				console.log(expr+` Build ${green('Success')}`, ev.result.watchFiles);
 				break;
 			case 'END':
 				return resolve(ev);
@@ -284,15 +299,16 @@ const buildSketchRollup = new Task('build:sketch:rollup', (resolve, reject) => {
 		return bundle.write(output).then(resolve).catch(reject);
 	}).catch(reject);
 
-}, [resolveSketch]);
-if (argv.clean) buildSketchRollup.addDep(cleanApp);
+}, ['resolve:sketch']);
+if (argv.clean) t.depend('clean:app');
 
 /**
  * @deprecated
- * Build the sketch with webpack
+ * @task build:sketch:webpack
+ * Builds the sketch with webpack.
  * @requires webpack-stream
  */
-const buildSketchWebpack = new Task('build:sketch:webpack', (resolve, reject) => {
+var t = tm.newTask('build:sketch:webpack', (resolve, reject) => {
 	const webpack  = require('webpack-stream');
 	let config = {
 		mode: 'development',
@@ -302,39 +318,42 @@ const buildSketchWebpack = new Task('build:sketch:webpack', (resolve, reject) =>
 				assets:   path.resolve(__dirname, 'assets/')
 			}
 		},
-		entry: resolveSketch.resolved,
+		entry: sketch.resolved,
 		output: {
 			filename: 'sketch.js'
 		}
 	};
-	return $.src(resolveSketch.resolved)
+	return $.src(sketch.resolved)
 		.pipe(webpack(config))
 		.pipe($.dest(dirs.app))
 		.on('end', resolve);
 
-}, [resolveSketch]);
-if (argv.clean) buildSketchWebpack.addDep(cleanApp);
+}, ['resolve:sketch']);
+if (argv.clean) t.depend('clean:app');
 
 /**
- * Build the sketch
+ * @task build:sketch
+ * Builds the sketch.
  */
-const buildSketch = new Task('build:sketch', [buildSketchRollup]);
+tm.newTask('build:sketch', ['build:sketch:rollup']);
 
 /**
- * Build the theme
+ * @task build:theme
+ * Builds the theme.
  */
-const buildTheme = new Task('build:theme', (resolve, reject) => {
-	return $.src(join(resolveTheme.resolved, '*'))
+var t = tm.newTask('build:theme', (resolve, reject) => {
+	return $.src(join(theme.resolved, '*'))
 		.pipe($.dest(dirs.app))
 		.on('end', resolve);
 
-}, [resolveTheme]);
-if (argv.clean) buildTheme.addDep(cleanApp);
+}, ['resolve:theme']);
+if (argv.clean) t.depend('clean:app');
 
 /**
- * Build p5js
+ * @task build:p5
+ * Builds p5js.
  */
-const buildP5 = new Task('build:p5', (resolve, reject) => {
+var t = tm.newTask('build:p5', (resolve, reject) => {
 	let base = join(dirs.modules, 'p5', 'lib');
 	return $.src([
 			join(base, 'p5.min.js'),
@@ -343,18 +362,14 @@ const buildP5 = new Task('build:p5', (resolve, reject) => {
 		.pipe($.dest(dirs.app))
 		.on('end', resolve);
 });
-if (argv.clean) buildP5.addDep(cleanApp);
+if (argv.clean) t.depend('clean:app');
 
 /**
- * Build the app
- */
-const build = new Task('build', [buildSketch, buildTheme, buildP5]);
-
-/**
- * Run the app with Browsersync
+ * @task app
+ * Runs the app with Browsersync.
  * @see https://www.browsersync.io/docs/options
  */
-const app = new Task('app', (resolve, reject) => {
+const app = tm.newTask('app', (resolve, reject) => {
 	return bsync.init({
 		watch: true, // This should activate live reload
 		browser: argv.browser,
@@ -364,7 +379,7 @@ const app = new Task('app', (resolve, reject) => {
 		}
 	}, resolve);
 });
-if (argv.sketch || argv.theme || argv.watch) app.addDep(build);
+if (argv.sketch || argv.theme || argv.watch) app.depend('build');
 
  /////////////////////////////////////
 ////  Run the tasks via command line
@@ -373,21 +388,17 @@ if (argv._.length) { // Subcommands
 	const cmd = argv._[0];
 	const commands = { build, app, clean };
 	if (cmd in commands) {
-		commands[cmd]().catch(err => {
-			handleError(err);
-		});
+		commands[cmd]().catch(e => { handleError(e) });
 
 	} else { // XXX: This block might never be reached
-		logger.error(`[${red('Error')}] No such command as '${cmd}'\n`);
+		console.error(`[${red('Error')}] No such command as '${cmd}'\n`);
 		yargs.showHelp();
 	}
 
 } else { // Default command
 	if (!argv.watch) {
 		argv.watch = true;
-		app.addDep(build);
+		app.depend('build');
 	}
-	app().catch(err => {
-		handleError(err);
-	});
+	app().catch(e => { handleError(e) });
 }
