@@ -388,7 +388,7 @@ if (argv._.length) { // Subcommands
 	const cmd = argv._[0];
 	const commands = { build, app, clean };
 	if (cmd in commands) {
-		commands[cmd]().catch(e => { handleError(e) });
+		commands[cmd]().catch(handleError);
 
 	} else { // XXX: This block might never be reached
 		console.error(`[${red('Error')}] No such command as '${cmd}'\n`);
@@ -400,5 +400,5 @@ if (argv._.length) { // Subcommands
 		argv.watch = true;
 		app.depend('build');
 	}
-	app().catch(e => { handleError(e) });
+	app().catch(handleError);
 }
