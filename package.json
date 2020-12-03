@@ -11,6 +11,9 @@
   "bin": {
     "p5": "index.js"
   },
+  "scripts": {
+    "postinstall": "cd node_modules/.bin && ln -sfn ../../index.js p5"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/amekusa/p5-livesketch.git"
