@@ -9,7 +9,7 @@
     "sketches/example.js"
   ],
   "bin": {
-    "p5live": "index.js"
+    "p5": "index.js"
   },
   "repository": {
     "type": "git",

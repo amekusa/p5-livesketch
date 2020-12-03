@@ -47,7 +47,7 @@ if (local) {
 	dirs.dist = join(cwd, 'dist');
 } else {
 	dirs.src  = cwd;
-	dirs.app  = join(cwd, '.p5live');
+	dirs.app  = join(cwd, '.p5');
 	dirs.dist = cwd;
 }
 
@@ -94,7 +94,7 @@ const options = {
 		desc:  `Automatically answers "yes" to any confirmation prompts`
 	}
 };
-const argv = yargs.scriptName('p5live')
+const argv = yargs.scriptName('p5')
 	.usage(`$0 [sketch] [options]`, `Builds & Runs a sketch with live preview`, yargs => {
 		yargs.positional('sketch', {
 			type: 'string',
