@@ -410,23 +410,27 @@ const scaffold = tm.newTask('scaffold', (resolve, reject) => {
 
 	createFile();
 	function createFile(count = 0) {
-		fs.open(join(dirs.src, file), 'wx', (err, io) => {
+		let fPath = join(dirs.src, file);
+		fs.open(fPath, 'wx', (err, io) => {
 			if (err) {
-				if (argv.sketch || err.code != 'EEXIST') throw err;
-				if (count >= 64) throw `Too many numbered sketches`;
+				if (argv.sketch || err.code != 'EEXIST') return reject(err);
+				if (count >= 64) return reject(`too many numbered sketches`);
+
 				let m = file.match(/_#(\d+)\.js$/);
 				if (m) file = file.replace(/_#\d+\.js$/, `_#${parseInt(m[1])+1}.js`);
 				else file = file.replace(/\.js$/, '_#2.js');
 				return createFile(count+1);
 			}
+			console.log(`Created: ${green(fPath)}`);
 			fs.readFile(join(__dirname, 'scaffold.js'), (err, data) => {
 				if (err) {
 					console.warn(err);
 					data = '';
 				}
 				fs.write(io, data, err => {
-					if (err) throw err;
+					if (err) return reject(err);
 					fs.close(io);
+					resolve(fPath);
 				});
 			});
 		});
