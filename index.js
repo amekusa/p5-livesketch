@@ -108,7 +108,13 @@ const argv = yargs.scriptName('p5')
 			yes:     options.yes
 		});
 	})
-	.command('build [options]', `Builds the app`, {
+	.command('new   [sketch]', `Scaffold a new sketch`, yargs => {
+		yargs.positional('sketch', {
+			type: 'string',
+			desc: `Path or Name of the sketch to scaffold`
+		});
+	})
+	.command('build [options]', `Builds a sketch into an app`, {
 		sketch: options.sketch,
 		theme:  options.theme,
 		app:    options.app,
@@ -116,14 +122,21 @@ const argv = yargs.scriptName('p5')
 		clean:  options.clean,
 		yes:    options.yes
 	})
-	.command('app   [options]', `Runs the app`, options)
-	.command('clean [options]', `Cleans the files`, {
+	.command('app   [options]', `Runs app`, options)
+	.command('clean [options]', `Cleans files`, {
 		yes: options.yes
 	})
 	.argv;
 
  ////////////////
 ////  Utilities
+
+function timestamp(date = null) {
+	if (!date) date = new Date();
+	return date.getFullYear().toString() + '-' +
+		date.getMonth().toString().padStart(2, '0') + '-' +
+		date.getDate().toString().padStart(2, '0');
+}
 
 function error(name, msg = '') {
 	let r = new Error({
@@ -172,6 +185,11 @@ function cleanDir(dir, resolve, reject) {
 			? del([join(dir, '**'), dir]).then(resolve).catch(reject)
 			: reject(`Task Canceled`);
 	});
+}
+
+function prompt(...args) {
+	console.suppress(true);
+	return inquirer.prompt(...args).finally(console.unsuppress);
 }
 
  ////////////
@@ -381,12 +399,46 @@ const app = tm.newTask('app', (resolve, reject) => {
 });
 if (argv.sketch || argv.theme || argv.watch) app.depend('build');
 
+/**
+ * @task scaffold
+ * Scaffolds a new sketch
+ */
+const scaffold = tm.newTask('scaffold', (resolve, reject) => {
+	let file = '';
+	if (argv.sketch) file = argv.sketch.endsWith('.js') ? argv.sketch : (argv.sketch + '.js');
+	else file = 'sketch_' + timestamp() + '.js';
+
+	createFile();
+	function createFile(count = 0) {
+		fs.open(join(dirs.src, file), 'wx', (err, io) => {
+			if (err) {
+				if (argv.sketch || err.code != 'EEXIST') throw err;
+				if (count >= 64) throw `Too many numbered sketches`;
+				let m = file.match(/_#(\d+)\.js$/);
+				if (m) file = file.replace(/_#\d+\.js$/, `_#${parseInt(m[1])+1}.js`);
+				else file = file.replace(/\.js$/, '_#2.js');
+				return createFile(count+1);
+			}
+			fs.readFile(join(__dirname, 'scaffold.js'), (err, data) => {
+				if (err) {
+					console.warn(err);
+					data = '';
+				}
+				fs.write(io, data, err => {
+					if (err) throw err;
+					fs.close(io);
+				});
+			});
+		});
+	}
+});
+
  /////////////////////////////////////
 ////  Run the tasks via command line
 
 if (argv._.length) { // Subcommands
 	const cmd = argv._[0];
-	const commands = { build, app, clean };
+	const commands = { build, app, clean, new: scaffold };
 	if (cmd in commands) {
 		commands[cmd]().catch(handleError);
 
