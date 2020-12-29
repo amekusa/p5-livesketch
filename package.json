@@ -47,7 +47,7 @@
     "rollup": "^2.34.0",
     "yargs": "^16.1.1"
   },
-  "bundledDependencies": [
+  "bundleDependencies": [
     "p5"
   ]
 }
