@@ -403,7 +403,8 @@ if (argv.sketch || argv.theme || argv.watch) app.depend('build');
  * @task scaffold
  * Scaffolds a new sketch
  */
-const scaffold = tm.newTask('scaffold', (resolve, reject) => {
+const scaffold = tm.newTask('scaffold', function (resolve, reject) {
+	let me = this;
 	let file = '';
 	if (argv.sketch) file = argv.sketch.endsWith('.js') ? argv.sketch : (argv.sketch + '.js');
 	else file = 'sketch_' + timestamp() + '.js';
@@ -421,7 +422,7 @@ const scaffold = tm.newTask('scaffold', (resolve, reject) => {
 				else file = file.replace(/\.js$/, '_#2.js');
 				return createFile(count+1);
 			}
-			console.log(`Created: ${green(fPath)}`);
+			me.log(`Created: ${green(fPath)}`);
 			fs.readFile(join(__dirname, 'scaffold.js'), (err, data) => {
 				if (err) {
 					console.warn(err);
