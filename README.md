@@ -15,12 +15,12 @@ Install `p5-livesketch` via `npm` <small>( global-install is recommended )</smal
 npm i -g p5-livesketch
 ```
 
-Once the installation is completed, you can use **`p5live`** command.
+Once the installation is completed, you can use **`p5`** command.
 
 Let's type:
 
 ```sh
-p5live help
+p5 help
 ```
 
 It shows the quick reference for the usage details.
@@ -29,7 +29,6 @@ It shows the quick reference for the usage details.
 
 *Upcoming features:
 
-- Scaffolding a sketch
 - Cleaning old files automatically
 
 
