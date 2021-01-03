@@ -134,7 +134,7 @@ const argv = yargs.scriptName('p5')
 function timestamp(date = null) {
 	if (!date) date = new Date();
 	return date.getFullYear().toString() + '-' +
-		date.getMonth().toString().padStart(2, '0') + '-' +
+		(date.getMonth()+1).toString().padStart(2, '0') + '-' +
 		date.getDate().toString().padStart(2, '0');
 }
 
