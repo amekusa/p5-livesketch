@@ -47,7 +47,7 @@ if (local) {
 	dirs.dist = join(cwd, 'dist');
 } else {
 	dirs.src  = cwd;
-	dirs.app  = join(cwd, '.p5live');
+	dirs.app  = join(cwd, '.p5');
 	dirs.dist = cwd;
 }
 
@@ -94,7 +94,7 @@ const options = {
 		desc:  `Automatically answers "yes" to any confirmation prompts`
 	}
 };
-const argv = yargs.scriptName('p5live')
+const argv = yargs.scriptName('p5')
 	.usage(`$0 [sketch] [options]`, `Builds & Runs a sketch with live preview`, yargs => {
 		yargs.positional('sketch', {
 			type: 'string',
@@ -108,7 +108,13 @@ const argv = yargs.scriptName('p5live')
 			yes:     options.yes
 		});
 	})
-	.command('build [options]', `Builds the app`, {
+	.command('new   [sketch]', `Scaffold a new sketch`, yargs => {
+		yargs.positional('sketch', {
+			type: 'string',
+			desc: `Path or Name of the sketch to scaffold`
+		});
+	})
+	.command('build [options]', `Builds a sketch into an app`, {
 		sketch: options.sketch,
 		theme:  options.theme,
 		app:    options.app,
@@ -116,14 +122,21 @@ const argv = yargs.scriptName('p5live')
 		clean:  options.clean,
 		yes:    options.yes
 	})
-	.command('app   [options]', `Runs the app`, options)
-	.command('clean [options]', `Cleans the files`, {
+	.command('app   [options]', `Runs app`, options)
+	.command('clean [options]', `Cleans files`, {
 		yes: options.yes
 	})
 	.argv;
 
  ////////////////
 ////  Utilities
+
+function timestamp(date = null) {
+	if (!date) date = new Date();
+	return date.getFullYear().toString() + '-' +
+		(date.getMonth()+1).toString().padStart(2, '0') + '-' +
+		date.getDate().toString().padStart(2, '0');
+}
 
 function error(name, msg = '') {
 	let r = new Error({
@@ -172,6 +185,11 @@ function cleanDir(dir, resolve, reject) {
 			? del([join(dir, '**'), dir]).then(resolve).catch(reject)
 			: reject(`Task Canceled`);
 	});
+}
+
+function prompt(...args) {
+	console.suppress(true);
+	return inquirer.prompt(...args).finally(console.unsuppress);
 }
 
  ////////////
@@ -381,12 +399,51 @@ const app = tm.newTask('app', (resolve, reject) => {
 });
 if (argv.sketch || argv.theme || argv.watch) app.depend('build');
 
+/**
+ * @task scaffold
+ * Scaffolds a new sketch
+ */
+const scaffold = tm.newTask('scaffold', function (resolve, reject) {
+	let me = this;
+	let file = '';
+	if (argv.sketch) file = argv.sketch.endsWith('.js') ? argv.sketch : (argv.sketch + '.js');
+	else file = 'sketch_' + timestamp() + '.js';
+
+	createFile();
+	function createFile(count = 0) {
+		let fPath = join(dirs.src, file);
+		fs.open(fPath, 'wx', (err, io) => {
+			if (err) {
+				if (argv.sketch || err.code != 'EEXIST') return reject(err);
+				if (count >= 64) return reject(`too many numbered sketches`);
+
+				let m = file.match(/_#(\d+)\.js$/);
+				if (m) file = file.replace(/_#\d+\.js$/, `_#${parseInt(m[1])+1}.js`);
+				else file = file.replace(/\.js$/, '_#2.js');
+				return createFile(count+1);
+			}
+			me.log(`Created: ${green(fPath)}`);
+			fs.readFile(join(__dirname, 'scaffold.js'), (err, data) => {
+				if (err) {
+					console.warn(err);
+					data = '';
+				}
+				fs.write(io, data, err => {
+					if (err) return reject(err);
+					fs.close(io);
+					resolve(fPath);
+				});
+			});
+		});
+	}
+});
+
  /////////////////////////////////////
 ////  Run the tasks via command line
 
 if (argv._.length) { // Subcommands
 	const cmd = argv._[0];
-	const commands = { build, app, clean };
+	const commands = { build, app, clean, new: scaffold };
 	if (cmd in commands) {
 		commands[cmd]().catch(handleError);
 
