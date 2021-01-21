@@ -4,7 +4,7 @@
   "description": "A command line builder for p5.js sketches, which supports live preview and ES module loading",
   "main": "index.js",
   "files": [
-    "lib",
+    "scaffold.js",
     "themes/default",
     "sketches/example.js"
   ],
