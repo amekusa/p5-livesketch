@@ -21,6 +21,10 @@ const // NPM modules
 	bsync    = require('browser-sync'),
 	rollup   = require('rollup');
 
+const rollupPlugin = {
+	importAssets: require('rollup-plugin-import-assets')
+};
+
 const // Gulp modules
 	$        = require('gulp'),
 	$if      = require('gulp-if'),
@@ -274,14 +278,24 @@ var t = tm.newTask('build:sketch:rollup', (resolve, reject) => {
 	let input = {
 		input: sketch.resolved,
 		context: 'window', // Maybe unnecessary
-		treeshake: false
+		treeshake: false,
 		/* NOTE: Treeshaking is the rollup's feature that performs
 		 * culling unreachable code to reduce the size of the result.
 		 * Because the sketch itself is handled by p5js core which is
 		 * never reached from rollup, we need to turn this feature off
 		 * to avoid the entire sketch getting culled.
 		 **/
-	}, output = {
+		plugins: [
+			rollupPlugin.importAssets({
+				include: [/.*/],
+				exclude: [/\.e?js$/i],
+				emitAssets: true, // copy assets to output folder
+				fileNames: 'assets/[name]-[hash].[ext]', // name pattern for the asset copied
+				publicPath: '' // public path of the assets
+			})
+		]
+	};
+	let output = {
 		file: join(dirs.app, 'sketch.js'),
 		format: 'iife', // For browsers
 		exports: 'none',
