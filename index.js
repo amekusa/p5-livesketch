@@ -99,13 +99,7 @@ const argv = yargs.scriptName('p5')
 			type: 'string',
 			desc: `The sketch file to build & run`
 		})
-		.options({
-			theme:   options.theme,
-			app:     options.app,
-			browser: options.browser,
-			clean:   options.clean,
-			yes:     options.yes
-		});
+		.options(options);
 	})
 	.command('new   [sketch]', `Scaffold a new sketch`, yargs => {
 		yargs.positional('sketch', {
@@ -473,9 +467,5 @@ if (argv._.length) { // Subcommands
 	}
 
 } else { // Default command
-	if (!argv.watch) {
-		argv.watch = true;
-		app.depend('build');
-	}
 	app().catch(handleError);
 }
