@@ -60,11 +60,6 @@ if (local) {
 ////  Commandline settings
 
 const options = {
-	sketch: {
-		alias: ['src', 's'],
-		type:  'string',
-		desc:  `The sketch file to build`
-	},
 	theme: {
 		alias:   't',
 		type:    'string',
@@ -126,15 +121,26 @@ const argv = yargs.scriptName('p5')
 			}
 		});
 	})
-	.command('build [options]', `Builds a sketch into an app`, {
-		sketch: options.sketch,
-		theme:  options.theme,
-		app:    options.app,
-		watch:  options.watch,
-		clean:  options.clean,
-		yes:    options.yes
+	.command('build [sketch] [options]', `Builds a sketch into an app`, yargs => {
+		yargs.positional('sketch', {
+			type: 'string',
+			desc: `Path or Name of the sketch to build`
+		})
+		.options({
+			theme:  options.theme,
+			app:    options.app,
+			watch:  options.watch,
+			clean:  options.clean,
+			yes:    options.yes
+		});
 	})
-	.command('app   [options]', `Runs app`, options)
+	.command('app   [sketch] [options]', `Runs app`, yargs => {
+		yargs.positional('sketch', {
+			type: 'string',
+			desc: `Path or Name of the sketch to build & run`
+		})
+		.options(options);
+	})
 	.command('clean [options]', `Cleans files`, {
 		yes: options.yes
 	})
