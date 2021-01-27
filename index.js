@@ -42,8 +42,9 @@ const local = cwd == __dirname;
 
 // Directories
 const dirs = {
-	themes:  join(__dirname, 'themes'),
-	modules: join(__dirname, 'node_modules')
+	themes:       join(__dirname, 'themes'),
+	boilerplates: join(__dirname, 'boilerplates'),
+	modules:      join(__dirname, 'node_modules')
 };
 if (local) {
 	dirs.src  = join(cwd, 'sketches');
@@ -116,6 +117,13 @@ const argv = yargs.scriptName('p5')
 		yargs.positional('sketch', {
 			type: 'string',
 			desc: `Path or Name of the sketch to scaffold`
+		})
+		.options({
+			instance: {
+				alias: 'i',
+				type:  'boolean',
+				desc:  'Uses instance mode'
+			}
 		});
 	})
 	.command('build [options]', `Builds a sketch into an app`, {
@@ -419,9 +427,13 @@ if (argv.sketch || argv.theme || argv.watch) app.depend('build');
  */
 const scaffold = tm.newTask('scaffold', function (resolve, reject) {
 	let me = this;
+
 	let file = '';
 	if (argv.sketch) file = argv.sketch.endsWith('.js') ? argv.sketch : (argv.sketch + '.js');
 	else file = 'sketch_' + timestamp() + '.js';
+
+	let boilerplate = 'minimal';
+	if (argv.instance) boilerplate += '-instance';
 
 	createFile();
 	function createFile(count = 0) {
@@ -437,7 +449,7 @@ const scaffold = tm.newTask('scaffold', function (resolve, reject) {
 				return createFile(count+1);
 			}
 			me.log(`Created: ${green(fPath)}`);
-			fs.readFile(join(__dirname, 'scaffold.js'), (err, data) => {
+			fs.readFile(join(dirs.boilerplates, boilerplate + '.js'), (err, data) => {
 				if (err) {
 					console.warn(err);
 					data = '';
