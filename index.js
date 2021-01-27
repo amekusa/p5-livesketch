@@ -21,7 +21,7 @@ const // NPM modules
 	bsync    = require('browser-sync'),
 	rollup   = require('rollup');
 
-const rollupPlugin = {
+const rPlugins = { // rollup plugins
 	importAssets: require('rollup-plugin-import-assets')
 };
 
@@ -184,15 +184,13 @@ function cleanDir(dir, resolve, reject) {
 	if (!fs.existsSync(dir)) return resolve();
 	if (argv.yes) return del([join(dir, '**'), dir]).then(resolve).catch(reject); // No confirm
 
-	console.suppress(true);
-	return inquirer.prompt({
+	return prompt({
 		type:    'confirm',
 		name:    'yes',
 		default: false,
 		message: `Are you sure you want to ${chalk.underline('delete')} "${white(dir)}" ?`
 
 	}).then(answer => {
-		console.unsuppress();
 		return answer.yes
 			? del([join(dir, '**'), dir]).then(resolve).catch(reject)
 			: reject(`Task Canceled`);
@@ -201,7 +199,7 @@ function cleanDir(dir, resolve, reject) {
 
 function prompt(...args) {
 	console.suppress(true);
-	return inquirer.prompt(...args).finally(console.unsuppress);
+	return inquirer.prompt(...args).finally(() => { console.unsuppress() });
 }
 
  ////////////
@@ -248,15 +246,13 @@ const sketch = tm.newTask('resolve:sketch', (resolve, reject) => {
 	if (!options.length) return reject(error('SketchMissing'));
 	if (options.length == 1) return resolve(join(dirs.src, options[0]));
 
-	console.suppress(true);
-	return inquirer.prompt({
+	return prompt({
 		type:    'list',
 		name:    'sketch',
 		message: 'Which sketch do you want to run?',
 		choices: options
 
 	}).then(answer => {
-		console.unsuppress();
 		return resolve(join(dirs.src, answer.sketch));
 	});
 });
@@ -294,7 +290,7 @@ var t = tm.newTask('build:sketch:rollup', (resolve, reject) => {
 		 * to avoid the entire sketch getting culled.
 		 **/
 		plugins: [
-			rollupPlugin.importAssets({
+			rPlugins.importAssets({
 				include: [/.*/],
 				exclude: [/\.e?js$/i],
 				emitAssets: true, // copy assets to output folder
