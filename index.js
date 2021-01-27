@@ -63,7 +63,6 @@ const options = {
 	theme: {
 		alias:   't',
 		type:    'string',
-		default: join(dirs.themes, 'default'),
 		desc:    `The theme to handle the sketch`
 	},
 	app: {
@@ -268,7 +267,7 @@ const sketch = tm.newTask('resolve:sketch', (resolve, reject) => {
  * Resolves the path to the theme.
  */
 const theme = tm.newTask('resolve:theme', (resolve, reject) => {
-	let theme = find(argv.theme, dirs.themes);
+	let theme = find(argv.theme || 'default', dirs.themes);
 	return theme ? resolve(theme) : reject(error('ThemeMissing'));
 });
 
