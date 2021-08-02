@@ -48,11 +48,11 @@ const dirs = {
 };
 if (local) {
 	dirs.src  = join(cwd, 'sketches');
-	dirs.app  = join(cwd, '.app');
+	dirs.app  = join(cwd, '_app');
 	dirs.dist = join(cwd, 'dist');
 } else {
 	dirs.src  = cwd;
-	dirs.app  = join(cwd, '.p5');
+	dirs.app  = join(cwd, '_p5-app');
 	dirs.dist = cwd;
 }
 
