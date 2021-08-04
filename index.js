@@ -57,35 +57,34 @@ if (local) {
 }
 
  ///////////////////////////
-////  Commandline settings
+////  Commandline Settings
 
 const options = {
 	theme: {
 		alias:   't',
 		type:    'string',
-		desc:    `The theme to handle the sketch`
+		desc:    `The theme to use for building a sketch`
 	},
 	app: {
 		alias:   'a',
 		type:    'string',
-		default: dirs.app,
-		desc:    `The directory where the app is/was built`
+		desc:    `The app directory to run`
 	},
 	browser: {
 		alias:   'b',
 		type:    'string',
 		default: 'default',
-		desc:    `The browser to open the app`
+		desc:    `The browser to open an app`
 	},
 	watch: {
 		alias: 'w',
 		type:  'boolean',
-		desc:  `Watch mode`
+		desc:  `Watch Mode`
 	},
 	clean: {
 		alias: 'c',
 		type:  'boolean',
-		desc:  `Clean mode`
+		desc:  `Clean Mode`
 	},
 	yes: {
 		alias: 'y',
@@ -101,7 +100,7 @@ const argv = yargs.scriptName('p5')
 		})
 		.options(options);
 	})
-	.command('new   [sketch]', `Scaffold a new sketch`, yargs => {
+	.command('new   [sketch]', `Scaffolds a new sketch`, yargs => {
 		yargs.positional('sketch', {
 			type: 'string',
 			desc: `Path or Name of the sketch to scaffold`
