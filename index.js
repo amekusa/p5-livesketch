@@ -63,18 +63,18 @@ const options = {
 	theme: {
 		alias:   't',
 		type:    'string',
-		desc:    `The theme to use for building a sketch`
+		desc:    `Theme to use for building a sketch`
 	},
 	app: {
 		alias:   'a',
 		type:    'string',
-		desc:    `The app directory to run`
+		desc:    `App directory to run`
 	},
 	browser: {
 		alias:   'b',
 		type:    'string',
 		default: 'default',
-		desc:    `The browser to open an app`
+		desc:    `Browser to open the app`
 	},
 	watch: {
 		alias: 'w',
@@ -96,7 +96,7 @@ const argv = yargs.scriptName('p5')
 	.usage(`$0 [sketch] [options]`, `Builds & Runs a sketch with live preview`, yargs => {
 		yargs.positional('sketch', {
 			type: 'string',
-			desc: `The sketch file to build & run`
+			desc: `Sketch file to build & run`
 		})
 		.options(options);
 	})
@@ -214,7 +214,7 @@ const tm = Task.Manager.global();
  * @task clean
  * Cleans up the generated files.
  */
-const clean = tm.newTask('clean', ['clean:app']);
+tm.newTask('clean', ['clean:app']);
 
 /**
  * @task clean:app
@@ -228,7 +228,7 @@ tm.newTask('clean:app', (resolve, reject) => {
  * @task resolve:sketch
  * Resolves the path to the sketch to build.
  */
-const sketch = tm.newTask('resolve:sketch', (resolve, reject) => {
+tm.newTask('resolve:sketch', (resolve, reject) => {
 	if (argv.sketch) {
 		let sketch = find(argv.sketch, dirs.src);
 		return sketch ? resolve(sketch) : reject(error('NoSuchSketch', `as ${argv.sketch}`));
@@ -259,7 +259,7 @@ const sketch = tm.newTask('resolve:sketch', (resolve, reject) => {
  * @task resolve:theme
  * Resolves the path to the theme.
  */
-const theme = tm.newTask('resolve:theme', (resolve, reject) => {
+tm.newTask('resolve:theme', (resolve, reject) => {
 	let theme = find(argv.theme || 'default', dirs.themes);
 	return theme ? resolve(theme) : reject(error('ThemeMissing'));
 });
@@ -268,7 +268,7 @@ const theme = tm.newTask('resolve:theme', (resolve, reject) => {
  * @task build
  * Builds the app.
  */
-const build = tm.newTask('build', ['build:sketch', 'build:theme', 'build:p5']);
+tm.newTask('build', ['build:sketch', 'build:theme', 'build:p5']);
 
 /**
  * @task build:sketch:rollup
@@ -276,9 +276,10 @@ const build = tm.newTask('build', ['build:sketch', 'build:theme', 'build:p5']);
  * @requires rollup
  * @see https://rollupjs.org/guide/en/
  */
-var t = tm.newTask('build:sketch:rollup', (resolve, reject) => {
+tm.newTask('build:sketch:rollup', (resolve, reject, t) => {
+	let sketch = t.dep('sketch');
 	let input = {
-		input: sketch.resolved,
+		input: sketch,
 		context: 'window', // Maybe unnecessary
 		treeshake: false,
 		/* NOTE: Treeshaking is the rollup's feature that performs
@@ -326,8 +327,8 @@ var t = tm.newTask('build:sketch:rollup', (resolve, reject) => {
 		return bundle.write(output).then(resolve).catch(reject);
 	}).catch(reject);
 
-}, ['resolve:sketch']);
-if (argv.clean) t.depend('clean:app');
+}, { sketch: 'resolve:sketch' });
+if (argv.clean) tm.last.depend('clean:app');
 
 /**
  * @deprecated
@@ -335,7 +336,8 @@ if (argv.clean) t.depend('clean:app');
  * Builds the sketch with webpack.
  * @requires webpack-stream
  */
-var t = tm.newTask('build:sketch:webpack', (resolve, reject) => {
+tm.newTask('build:sketch:webpack', (resolve, reject, t) => {
+	let sketch = t.dep('sketch');
 	const webpack  = require('webpack-stream');
 	let config = {
 		mode: 'development',
@@ -345,18 +347,18 @@ var t = tm.newTask('build:sketch:webpack', (resolve, reject) => {
 				assets:   path.resolve(__dirname, 'assets/')
 			}
 		},
-		entry: sketch.resolved,
+		entry: t.dep('sketch'),
 		output: {
 			filename: 'sketch.js'
 		}
 	};
-	return $.src(sketch.resolved)
+	return $.src(sketch)
 		.pipe(webpack(config))
 		.pipe($.dest(dirs.app))
 		.on('end', resolve);
 
-}, ['resolve:sketch']);
-if (argv.clean) t.depend('clean:app');
+}, { sketch: 'resolve:sketch' });
+if (argv.clean) tm.last.depend('clean:app');
 
 /**
  * @task build:sketch
@@ -368,19 +370,20 @@ tm.newTask('build:sketch', ['build:sketch:rollup']);
  * @task build:theme
  * Builds the theme.
  */
-var t = tm.newTask('build:theme', (resolve, reject) => {
-	return $.src(join(theme.resolved, '*'))
+tm.newTask('build:theme', (resolve, reject, t) => {
+	let theme = t.dep('theme');
+	return $.src(join(theme, '*'))
 		.pipe($.dest(dirs.app))
 		.on('end', resolve);
 
-}, ['resolve:theme']);
-if (argv.clean) t.depend('clean:app');
+}, { theme: 'resolve:theme' });
+if (argv.clean) tm.last.depend('clean:app');
 
 /**
  * @task build:p5
  * Builds p5js.
  */
-var t = tm.newTask('build:p5', (resolve, reject) => {
+tm.newTask('build:p5', (resolve, reject) => {
 	let base = join(dirs.modules, 'p5', 'lib');
 	return $.src([
 			join(base, 'p5.min.js'),
@@ -389,14 +392,14 @@ var t = tm.newTask('build:p5', (resolve, reject) => {
 		.pipe($.dest(dirs.app))
 		.on('end', resolve);
 });
-if (argv.clean) t.depend('clean:app');
+if (argv.clean) tm.last.depend('clean:app');
 
 /**
  * @task app
  * Runs the app with Browsersync.
  * @see https://www.browsersync.io/docs/options
  */
-const app = tm.newTask('app', (resolve, reject) => {
+tm.newTask('app', (resolve, reject) => {
 	return bsync.init({
 		watch: true, // This should activate live reload
 		browser: argv.browser,
@@ -406,13 +409,13 @@ const app = tm.newTask('app', (resolve, reject) => {
 		}
 	}, resolve);
 });
-if (argv.sketch || argv.theme || argv.watch) app.depend('build');
+if (argv.sketch || argv.theme || argv.watch) tm.last.depend('build');
 
 /**
  * @task scaffold
  * Scaffolds a new sketch
  */
-const scaffold = tm.newTask('scaffold', function (resolve, reject) {
+tm.newTask('new', function (resolve, reject) {
 	let me = this;
 
 	let file = '';
@@ -456,9 +459,14 @@ const scaffold = tm.newTask('scaffold', function (resolve, reject) {
 
 if (argv._.length) { // Subcommands
 	const cmd = argv._[0];
-	const commands = { build, app, clean, new: scaffold };
-	if (cmd in commands) {
-		commands[cmd]().catch(handleError);
+	const commands = [
+		'build',
+		'app',
+		'clean',
+		'new'
+	];
+	if (commands.includes(cmd)) {
+		tm.get(cmd)().catch(handleError);
 
 	} else { // XXX: This block might never be reached
 		console.error(`[${red('Error')}] No such command as '${cmd}'\n`);
@@ -466,5 +474,5 @@ if (argv._.length) { // Subcommands
 	}
 
 } else { // Default command
-	app().catch(handleError);
+	tm.get('app')().catch(handleError);
 }
