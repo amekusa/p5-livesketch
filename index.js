@@ -48,16 +48,16 @@ const dirs = {
 };
 if (local) {
 	dirs.src  = join(cwd, 'sketches');
-	dirs.app  = join(cwd, '_app');
+	dirs.app  = join(cwd, 'app');
 	dirs.dist = join(cwd, 'dist');
 } else {
 	dirs.src  = cwd;
-	dirs.app  = join(cwd, '_p5-app');
+	dirs.app  = join(cwd, 'p5');
 	dirs.dist = cwd;
 }
 
- ///////////////////////////
-////  Commandline Settings
+
+//-------- Commandline Settings --------//
 
 const options = {
 	theme: {
@@ -126,7 +126,7 @@ const argv = yargs.scriptName('p5')
 			yes:    options.yes
 		});
 	})
-	.command('app   [sketch] [options]', `Runs app`, yargs => {
+	.command('run   [sketch] [options]', `Runs app`, yargs => {
 		yargs.positional('sketch', {
 			type: 'string',
 			desc: `Path or Name of the sketch to build & run`
@@ -138,8 +138,8 @@ const argv = yargs.scriptName('p5')
 	})
 	.argv;
 
- ////////////////
-////  Utilities
+
+//-------- Utilities --------//
 
 function timestamp(date = null) {
 	if (!date) date = new Date();
@@ -200,8 +200,8 @@ function prompt(...args) {
 	return inquirer.prompt(...args).finally(() => { console.unsuppress() });
 }
 
- ////////////
-////  Tasks
+
+//-------- Tasks --------//
 
 Task.options({
 	defaultConsole: console,
@@ -266,7 +266,7 @@ tm.newTask('resolve:theme', (resolve, reject) => {
 
 /**
  * @task build
- * Builds the app.
+ * Builds a sketch into an app.
  */
 tm.newTask('build', ['build:sketch', 'build:theme', 'build:p5']);
 
@@ -381,7 +381,7 @@ if (argv.clean) tm.last.depend('clean:app');
 
 /**
  * @task build:p5
- * Builds p5js.
+ * Builds p5.js.
  */
 tm.newTask('build:p5', (resolve, reject) => {
 	let base = join(dirs.modules, 'p5', 'lib');
@@ -395,11 +395,11 @@ tm.newTask('build:p5', (resolve, reject) => {
 if (argv.clean) tm.last.depend('clean:app');
 
 /**
- * @task app
+ * @task run
  * Runs the app with Browsersync.
  * @see https://www.browsersync.io/docs/options
  */
-tm.newTask('app', (resolve, reject) => {
+tm.newTask('run', (resolve, reject) => {
 	return bsync.init({
 		watch: true, // This should activate live reload
 		browser: argv.browser,
@@ -454,14 +454,14 @@ tm.newTask('new', function (resolve, reject) {
 	}
 });
 
- /////////////////////////////////////
-////  Run the tasks via command line
+
+//-------- Execute Commands --------//
 
 if (argv._.length) { // Subcommands
 	const cmd = argv._[0];
 	const commands = [
 		'build',
-		'app',
+		'run',
 		'clean',
 		'new'
 	];
@@ -474,5 +474,5 @@ if (argv._.length) { // Subcommands
 	}
 
 } else { // Default command
-	tm.get('app')().catch(handleError);
+	tm.get('run')().catch(handleError);
 }
