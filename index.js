@@ -208,19 +208,19 @@ Task.options({
 	defaultLogLevel: 'all'
 });
 
-const tm = Task.Manager.global();
+const tasks = Task.Manager.global();
 
 /**
  * @task clean
  * Cleans up the generated files.
  */
-tm.newTask('clean', ['clean:app']);
+tasks.newTask('clean', ['clean:app']);
 
 /**
  * @task clean:app
  * Cleans up 'app' directory.
  */
-tm.newTask('clean:app', (resolve, reject) => {
+tasks.newTask('clean:app', (resolve, reject) => {
 	return cleanDir(dirs.app, resolve, reject);
 });
 
@@ -228,7 +228,7 @@ tm.newTask('clean:app', (resolve, reject) => {
  * @task resolve:sketch
  * Resolves the path to the sketch to build.
  */
-tm.newTask('resolve:sketch', (resolve, reject) => {
+tasks.newTask('resolve:sketch', (resolve, reject) => {
 	if (argv.sketch) {
 		let sketch = find(argv.sketch, dirs.src);
 		return sketch ? resolve(sketch) : reject(error('NoSuchSketch', `as ${argv.sketch}`));
@@ -259,7 +259,7 @@ tm.newTask('resolve:sketch', (resolve, reject) => {
  * @task resolve:theme
  * Resolves the path to the theme.
  */
-tm.newTask('resolve:theme', (resolve, reject) => {
+tasks.newTask('resolve:theme', (resolve, reject) => {
 	let theme = find(argv.theme || 'default', dirs.themes);
 	return theme ? resolve(theme) : reject(error('ThemeMissing'));
 });
@@ -268,7 +268,7 @@ tm.newTask('resolve:theme', (resolve, reject) => {
  * @task build
  * Builds a sketch into an app.
  */
-tm.newTask('build', ['build:sketch', 'build:theme', 'build:p5']);
+tasks.newTask('build', ['build:sketch', 'build:theme', 'build:p5']);
 
 /**
  * @task build:sketch:rollup
@@ -276,7 +276,7 @@ tm.newTask('build', ['build:sketch', 'build:theme', 'build:p5']);
  * @requires rollup
  * @see https://rollupjs.org/guide/en/
  */
-tm.newTask('build:sketch:rollup', (resolve, reject, t) => {
+tasks.newTask('build:sketch:rollup', (resolve, reject, t) => {
 	let sketch = t.dep('sketch');
 	let input = {
 		input: sketch,
@@ -328,7 +328,7 @@ tm.newTask('build:sketch:rollup', (resolve, reject, t) => {
 	}).catch(reject);
 
 }, { sketch: 'resolve:sketch' });
-if (argv.clean) tm.last.depend('clean:app');
+if (argv.clean) tasks.last.depend('clean:app');
 
 /**
  * @deprecated
@@ -336,7 +336,7 @@ if (argv.clean) tm.last.depend('clean:app');
  * Builds the sketch with webpack.
  * @requires webpack-stream
  */
-tm.newTask('build:sketch:webpack', (resolve, reject, t) => {
+tasks.newTask('build:sketch:webpack', (resolve, reject, t) => {
 	let sketch = t.dep('sketch');
 	const webpack  = require('webpack-stream');
 	let config = {
@@ -358,32 +358,32 @@ tm.newTask('build:sketch:webpack', (resolve, reject, t) => {
 		.on('end', resolve);
 
 }, { sketch: 'resolve:sketch' });
-if (argv.clean) tm.last.depend('clean:app');
+if (argv.clean) tasks.last.depend('clean:app');
 
 /**
  * @task build:sketch
  * Builds the sketch.
  */
-tm.newTask('build:sketch', ['build:sketch:rollup']);
+tasks.newTask('build:sketch', ['build:sketch:rollup']);
 
 /**
  * @task build:theme
  * Builds the theme.
  */
-tm.newTask('build:theme', (resolve, reject, t) => {
+tasks.newTask('build:theme', (resolve, reject, t) => {
 	let theme = t.dep('theme');
 	return $.src(join(theme, '*'))
 		.pipe($.dest(dirs.app))
 		.on('end', resolve);
 
 }, { theme: 'resolve:theme' });
-if (argv.clean) tm.last.depend('clean:app');
+if (argv.clean) tasks.last.depend('clean:app');
 
 /**
  * @task build:p5
  * Builds p5.js.
  */
-tm.newTask('build:p5', (resolve, reject) => {
+tasks.newTask('build:p5', (resolve, reject) => {
 	let base = join(dirs.modules, 'p5', 'lib');
 	return $.src([
 			join(base, 'p5.min.js'),
@@ -392,14 +392,14 @@ tm.newTask('build:p5', (resolve, reject) => {
 		.pipe($.dest(dirs.app))
 		.on('end', resolve);
 });
-if (argv.clean) tm.last.depend('clean:app');
+if (argv.clean) tasks.last.depend('clean:app');
 
 /**
  * @task run
  * Runs the app with Browsersync.
  * @see https://www.browsersync.io/docs/options
  */
-tm.newTask('run', (resolve, reject) => {
+tasks.newTask('run', (resolve, reject) => {
 	return bsync.init({
 		watch: true, // This should activate live reload
 		browser: argv.browser,
@@ -409,13 +409,13 @@ tm.newTask('run', (resolve, reject) => {
 		}
 	}, resolve);
 });
-if (argv.sketch || argv.theme || argv.watch) tm.last.depend('build');
+if (argv.sketch || argv.theme || argv.watch) tasks.last.depend('build');
 
 /**
  * @task scaffold
  * Scaffolds a new sketch
  */
-tm.newTask('new', function (resolve, reject) {
+tasks.newTask('new', function (resolve, reject) {
 	let me = this;
 
 	let file = '';
@@ -466,7 +466,7 @@ if (argv._.length) { // Subcommands
 		'new'
 	];
 	if (commands.includes(cmd)) {
-		tm.get(cmd)().catch(handleError);
+		tasks.get(cmd)().catch(handleError);
 
 	} else { // XXX: This block might never be reached
 		console.error(`[${red('Error')}] No such command as '${cmd}'\n`);
@@ -474,5 +474,5 @@ if (argv._.length) { // Subcommands
 	}
 
 } else { // Default command
-	tm.get('run')().catch(handleError);
+	tasks.get('run')().catch(handleError);
 }
