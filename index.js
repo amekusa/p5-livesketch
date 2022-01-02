@@ -499,5 +499,7 @@ if (argv._.length) { // Subcommands
 	}
 
 } else { // Default command
-	commands.run().catch(handleError);
+	try {
+		commands.run();
+	} catch (e) { handleError(e) }
 }
