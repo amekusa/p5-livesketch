@@ -59,6 +59,15 @@ if (local) {
 
 //-------- Commandline Settings --------//
 
+const commands = {
+	ls: () => {
+		let msg;
+		let sketches = getSketches();
+		if (!sketches.length) msg = 'No sketches found.';
+		else msg = sketches.join('\n');
+		console.log(msg);
+	}
+};
 const options = {
 	theme: {
 		alias:   't',
@@ -100,6 +109,7 @@ const argv = yargs.scriptName('p5')
 		})
 		.options(options);
 	})
+	.command('ls', `Lists sketches`)
 	.command('new   [sketch]', `Scaffolds a new sketch`, yargs => {
 		yargs.positional('sketch', {
 			type: 'string',
@@ -240,7 +250,7 @@ const tasks = Task.Manager.global();
  * @task clean
  * Cleans up the generated files.
  */
-tasks.newTask('clean', ['clean:app']);
+commands.clean = tasks.newTask('clean', ['clean:app']);
 
 /**
  * @task clean:app
@@ -287,7 +297,7 @@ tasks.newTask('resolve:theme', (resolve, reject) => {
  * @task build
  * Builds a sketch into an app.
  */
-tasks.newTask('build', ['build:sketch', 'build:theme', 'build:p5']);
+commands.build = tasks.newTask('build', ['build:sketch', 'build:theme', 'build:p5']);
 
 /**
  * @task build:sketch:rollup
@@ -418,7 +428,7 @@ if (argv.clean) tasks.last.depend('clean:app');
  * Runs the app with Browsersync.
  * @see https://www.browsersync.io/docs/options
  */
-tasks.newTask('run', (resolve, reject) => {
+commands.run = tasks.newTask('run', (resolve, reject) => {
 	return bsync.init({
 		watch: true, // This should activate live reload
 		browser: argv.browser,
@@ -434,7 +444,7 @@ if (argv.sketch || argv.theme || argv.watch) tasks.last.depend('build');
  * @task scaffold
  * Scaffolds a new sketch
  */
-tasks.newTask('new', function (resolve, reject) {
+commands.new = tasks.newTask('new', function (resolve, reject) {
 	let me = this;
 
 	let file = '';
@@ -478,14 +488,10 @@ tasks.newTask('new', function (resolve, reject) {
 
 if (argv._.length) { // Subcommands
 	const cmd = argv._[0];
-	const commands = [
-		'build',
-		'run',
-		'clean',
-		'new'
-	];
-	if (commands.includes(cmd)) {
-		tasks.get(cmd)().catch(handleError);
+	if (cmd in commands) {
+		try {
+			commands[cmd]();
+		} catch (e) { handleError(e) }
 
 	} else { // XXX: This block might never be reached
 		console.error(`[${red('Error')}] No such command as '${cmd}'\n`);
@@ -493,5 +499,5 @@ if (argv._.length) { // Subcommands
 	}
 
 } else { // Default command
-	tasks.get('run')().catch(handleError);
+	commands.run().catch(handleError);
 }
