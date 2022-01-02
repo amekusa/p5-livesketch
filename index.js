@@ -181,7 +181,8 @@ function handleError(err) {
 function getSketches() {
 	let sketches = [];
 	let projects = [];
-	let files = fs.readdirSync(dirs.src, { withFileTypes: true });
+	let base = dirs.src;
+	let files = fs.readdirSync(base, { withFileTypes: true });
 
 	for (let i = 0; i < files.length; i++) {
 		let file = files[i];
@@ -191,7 +192,7 @@ function getSketches() {
 			if (matched && !matched[1]) sketches.push(file.name);
 
 		} else if (file.isDirectory()) {
-			if (isProject(file)) projects.push(join(file, 'sketch.js'));
+			if (isProject(join(base, file.name))) projects.push(join(file.name, 'sketch.js'));
 		}
 	}
 	return projects.concat(sketches);
@@ -201,7 +202,7 @@ function isProject(dir) {
 	try {
 		let stats = fs.statSync(join(dir, 'sketch.js'));
 		return stats.isFile();
-	} catch { return false }
+	} catch (e) { return false }
 }
 
 function find(file, dirs) {
