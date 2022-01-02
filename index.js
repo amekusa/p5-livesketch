@@ -168,6 +168,32 @@ function handleError(err) {
 	// TODO: Wait for all the running tasks finish
 }
 
+function getSketches() {
+	let sketches = [];
+	let projects = [];
+	let files = fs.readdirSync(dirs.src, { withFileTypes: true });
+
+	for (let i = 0; i < files.length; i++) {
+		let file = files[i];
+
+		if (file.isFile()) {
+			let matched = file.name.match(/(\.min)?\.js$/i)
+			if (matched && !matched[1]) sketches.push(file.name);
+
+		} else if (file.isDirectory()) {
+			if (isProject(file)) projects.push(join(file, 'sketch.js'));
+		}
+	}
+	return projects.concat(sketches);
+}
+
+function isProject(dir) {
+	try {
+		let stats = fs.statSync(join(dir, 'sketch.js'));
+		return stats.isFile();
+	} catch { return false }
+}
+
 function find(file, dirs) {
 	if (typeof dirs == 'string') dirs = ['', dirs];
 	else dirs.unshift('');
@@ -233,14 +259,7 @@ tasks.newTask('resolve:sketch', (resolve, reject) => {
 		let sketch = find(argv.sketch, dirs.src);
 		return sketch ? resolve(sketch) : reject(error('NoSuchSketch', `as ${argv.sketch}`));
 	}
-	let files = fs.readdirSync(dirs.src, { withFileTypes: true });
-	let options = [];
-	for (let file of files) {
-		if (!file.isFile()) continue;
-		if (file.name.endsWith('.min.js')) continue;
-		if (!file.name.match(/\.(js)$/)) continue;
-		options.push(file.name);
-	}
+	let options = getSketches();
 	if (!options.length) return reject(error('SketchMissing'));
 	if (options.length == 1) return resolve(join(dirs.src, options[0]));
 
