@@ -356,36 +356,6 @@ tasks.newTask('build:sketch:rollup', (resolve, reject, t) => {
 if (argv.clean) tasks.last.depend('clean:app');
 
 /**
- * @deprecated
- * @task build:sketch:webpack
- * Builds the sketch with webpack.
- * @requires webpack-stream
- */
-tasks.newTask('build:sketch:webpack', (resolve, reject, t) => {
-	let sketch = t.dep('sketch');
-	const webpack  = require('webpack-stream');
-	let config = {
-		mode: 'development',
-		resolve: {
-			alias: {
-				sketches: path.resolve(__dirname, 'sketches/'),
-				assets:   path.resolve(__dirname, 'assets/')
-			}
-		},
-		entry: t.dep('sketch'),
-		output: {
-			filename: 'sketch.js'
-		}
-	};
-	return gulp.src(sketch)
-		.pipe(webpack(config))
-		.pipe(gulp.dest(dirs.app))
-		.on('end', resolve);
-
-}, { sketch: 'resolve:sketch' });
-if (argv.clean) tasks.last.depend('clean:app');
-
-/**
  * @task build:sketch
  * Builds the sketch.
  */
