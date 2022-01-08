@@ -19,16 +19,17 @@ const // NPM modules
 	inquirer = require('inquirer'),
 	del      = require('del'),
 	bsync    = require('browser-sync'),
-	rollup   = require('rollup');
+	rollup   = require('rollup'),
+	gulp     = require('gulp');
 
-const rPlugins = { // rollup plugins
+const rp = { // rollup plugins
 	importAssets: require('rollup-plugin-import-assets')
 };
 
-const // Gulp modules
-	$        = require('gulp'),
-	$if      = require('gulp-if'),
-	$rename  = require('gulp-rename');
+const gp = { // gulp plugins
+	if:     require('gulp-if'),
+	rename: require('gulp-rename')
+};
 
 const // Shortcuts
 	ds   = path.sep,
@@ -202,7 +203,7 @@ function isProject(dir) {
 	try {
 		let stats = fs.statSync(join(dir, 'sketch.js'));
 		return stats.isFile();
-	} catch (e) { return false }
+	} catch { return false }
 }
 
 function find(file, dirs) {
@@ -310,21 +311,15 @@ tasks.newTask('build:sketch:rollup', (resolve, reject, t) => {
 	let sketch = t.dep('sketch');
 	let input = {
 		input: sketch,
-		context: 'window', // Maybe unnecessary
-		treeshake: false,
-		/* NOTE: Treeshaking is the rollup's feature that performs
-		 * culling unreachable code to reduce the size of the result.
-		 * Because the sketch itself is handled by p5js core which is
-		 * never reached from rollup, we need to turn this feature off
-		 * to avoid the entire sketch getting culled.
-		 **/
+		context: 'window', // maybe unnecessary
+		treeshake: false, // this MUST be false
 		plugins: [
-			rPlugins.importAssets({
+			rp.importAssets({
 				include: [/.*/],
 				exclude: [/\.e?js$/i],
 				emitAssets: true, // copy assets to output folder
 				fileNames: 'assets/[name]-[hash].[ext]', // name pattern for the asset copied
-				publicPath: '' // public path of the assets
+				publicPath: '' // public path of the assets (should be empty)
 			})
 		]
 	};
@@ -382,9 +377,9 @@ tasks.newTask('build:sketch:webpack', (resolve, reject, t) => {
 			filename: 'sketch.js'
 		}
 	};
-	return $.src(sketch)
+	return gulp.src(sketch)
 		.pipe(webpack(config))
-		.pipe($.dest(dirs.app))
+		.pipe(gulp.dest(dirs.app))
 		.on('end', resolve);
 
 }, { sketch: 'resolve:sketch' });
@@ -402,8 +397,8 @@ tasks.newTask('build:sketch', ['build:sketch:rollup']);
  */
 tasks.newTask('build:theme', (resolve, reject, t) => {
 	let theme = t.dep('theme');
-	return $.src(join(theme, '*'))
-		.pipe($.dest(dirs.app))
+	return gulp.src(join(theme, '*'))
+		.pipe(gulp.dest(dirs.app))
 		.on('end', resolve);
 
 }, { theme: 'resolve:theme' });
@@ -415,11 +410,11 @@ if (argv.clean) tasks.last.depend('clean:app');
  */
 tasks.newTask('build:p5', (resolve, reject) => {
 	let base = join(dirs.modules, 'p5', 'lib');
-	return $.src([
+	return gulp.src([
 			join(base, 'p5.min.js'),
 			join(base, 'addons', '*.min.js')
 		], { base: base })
-		.pipe($.dest(dirs.app))
+		.pipe(gulp.dest(dirs.app))
 		.on('end', resolve);
 });
 if (argv.clean) tasks.last.depend('clean:app');
@@ -494,7 +489,7 @@ if (argv._.length) { // Subcommands
 			commands[cmd]();
 		} catch (e) { handleError(e) }
 
-	} else { // XXX: This block might never be reached
+	} else {
 		console.error(`[${red('Error')}] No such command as '${cmd}'\n`);
 		yargs.showHelp();
 	}
