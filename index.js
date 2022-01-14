@@ -258,7 +258,7 @@ commands.clean = tasks.newTask('clean', ['clean:app']);
  * @task clean:app
  * Cleans up 'app' directory.
  */
-tasks.newTask('clean:app', (resolve, reject) => {
+tasks.newTask('clean:app', function (resolve, reject) {
 	return cleanDir(dirs.app, resolve, reject);
 });
 
@@ -266,7 +266,7 @@ tasks.newTask('clean:app', (resolve, reject) => {
  * @task resolve:sketch
  * Resolves the path to the sketch to build.
  */
-tasks.newTask('resolve:sketch', (resolve, reject) => {
+tasks.newTask('resolve:sketch', function (resolve, reject) {
 	if (argv.sketch) {
 		let sketch = find(argv.sketch, dirs.src);
 		return sketch ? resolve(sketch) : reject(error('NoSuchSketch', `as ${argv.sketch}`));
@@ -290,7 +290,7 @@ tasks.newTask('resolve:sketch', (resolve, reject) => {
  * @task resolve:theme
  * Resolves the path to the theme.
  */
-tasks.newTask('resolve:theme', (resolve, reject) => {
+tasks.newTask('resolve:theme', function (resolve, reject) {
 	let theme = find(argv.theme || 'default', dirs.themes);
 	return theme ? resolve(theme) : reject(error('ThemeMissing'));
 });
@@ -307,8 +307,9 @@ commands.build = tasks.newTask('build', ['build:sketch', 'build:theme', 'build:p
  * @requires rollup
  * @see https://rollupjs.org/guide/en/
  */
-tasks.newTask('build:sketch:rollup', (resolve, reject, t) => {
-	let sketch = t.dep('sketch');
+tasks.newTask('build:sketch:rollup', function (resolve, reject) {
+	let task = this;
+	let sketch = task.dep('sketch');
 	let input = {
 		input: sketch,
 		context: 'window', // maybe unnecessary
@@ -365,8 +366,9 @@ tasks.newTask('build:sketch', ['build:sketch:rollup']);
  * @task build:theme
  * Builds the theme.
  */
-tasks.newTask('build:theme', (resolve, reject, t) => {
-	let theme = t.dep('theme');
+tasks.newTask('build:theme', function (resolve, reject) {
+	let task = this;
+	let theme = task.dep('theme');
 	return gulp.src(join(theme, '*'))
 		.pipe(gulp.dest(dirs.app))
 		.on('end', resolve);
@@ -378,7 +380,8 @@ if (argv.clean) tasks.last.depend('clean:app');
  * @task build:p5
  * Builds p5.js.
  */
-tasks.newTask('build:p5', (resolve, reject) => {
+tasks.newTask('build:p5', function (resolve, reject) {
+	let task = this
 	let base = join(dirs.modules, 'p5', 'lib');
 	return gulp.src([
 			join(base, 'p5.min.js'),
@@ -394,7 +397,7 @@ if (argv.clean) tasks.last.depend('clean:app');
  * Runs the app with Browsersync.
  * @see https://www.browsersync.io/docs/options
  */
-commands.run = tasks.newTask('run', (resolve, reject) => {
+commands.run = tasks.newTask('run', function (resolve, reject) {
 	return bsync.init({
 		watch: true, // This should activate live reload
 		browser: argv.browser,
@@ -411,7 +414,7 @@ if (argv.sketch || argv.theme || argv.watch) tasks.last.depend('build');
  * Scaffolds a new sketch
  */
 commands.new = tasks.newTask('new', function (resolve, reject) {
-	let me = this;
+	let task = this;
 
 	let file = '';
 	if (argv.sketch) file = argv.sketch.endsWith('.js') ? argv.sketch : (argv.sketch + '.js');
@@ -433,7 +436,7 @@ commands.new = tasks.newTask('new', function (resolve, reject) {
 				else file = file.replace(/\.js$/, '_#2.js');
 				return createFile(count+1);
 			}
-			me.log(`Created: ${green(fPath)}`);
+			task.log(`Created: ${green(fPath)}`);
 			fs.readFile(join(dirs.boilerplates, boilerplate + '.js'), (err, data) => {
 				if (err) {
 					console.warn(err);
