@@ -71,20 +71,20 @@ const commands = {
 };
 const options = {
 	theme: {
-		alias:   't',
-		type:    'string',
-		desc:    `Theme to use for building a sketch`
+		alias: 't',
+		type:  'string',
+		desc:  `Theme to use for building a sketch`
 	},
 	app: {
-		alias:   'a',
-		type:    'string',
-		desc:    `App directory to run`
+		alias: 'a',
+		type:  'string',
+		desc:  `App directory to run`
 	},
 	browser: {
-		alias:   'b',
-		type:    'string',
-		default: 'default',
-		desc:    `Browser to open the app`
+		alias: 'b',
+		type:  'string',
+		desc:  `Browser to open the app`,
+		default: 'default'
 	},
 	watch: {
 		alias: 'w',
@@ -129,13 +129,13 @@ const argv = yargs.scriptName('p5')
 			type: 'string',
 			desc: `Path or Name of the sketch to build`
 		})
-		.options({
-			theme:  options.theme,
-			app:    options.app,
-			watch:  options.watch,
-			clean:  options.clean,
-			yes:    options.yes
-		});
+		.options(filter(options, [
+			'theme',
+			'app',
+			'watch',
+			'clean',
+			'yes'
+		]));
 	})
 	.command('run   [sketch] [options]', `Runs app`, yargs => {
 		yargs.positional('sketch', {
@@ -144,13 +144,43 @@ const argv = yargs.scriptName('p5')
 		})
 		.options(options);
 	})
-	.command('clean [options]', `Cleans files`, {
-		yes: options.yes
-	})
+	.command('clean [options]', `Cleans files`, filter(options, 'yes'))
 	.argv;
 
 
 //-------- Utilities --------//
+
+/**
+ * @param {object}    obj      - Object
+ * @param {any|any[]} includes - Properties
+ * @return {object}
+ */
+function filter(obj, includes) {
+	let r = {};
+	let keys = Object.keys(obj);
+	if (Array.isArray(includes)) {
+		for (let i = 0; i < includes.length; i++) {
+			if (keys.includes(includes[i])) r[includes[i]] = obj[includes[i]];
+		}
+	} else if (keys.includes(includes)) r[includes] = obj[includes];
+	return r;
+}
+
+/**
+ * @param {object}    obj      - Object
+ * @param {any|any[]} excludes - Properties
+ * @return {object}
+ */
+function exclude(obj, excludes) {
+	let r = {};
+	let keys = Object.keys(obj);
+	if (Array.isArray(excludes)) {
+		for (let i = 0; i < keys.length; i++) {
+			if (!excludes.includes[keys[i]]) r[keys[i]] = obj[keys[i]];
+		}
+	} else if (excludes != keys[i]) r[keys[i]] = obj[keys[i]];
+	return r;
+}
 
 function timestamp(date = null) {
 	if (!date) date = new Date();
