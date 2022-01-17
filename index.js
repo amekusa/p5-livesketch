@@ -129,13 +129,7 @@ const argv = yargs.scriptName('p5')
 			type: 'string',
 			desc: `Path or Name of the sketch to build`
 		})
-		.options(filter(options, [
-			'theme',
-			'app',
-			'watch',
-			'clean',
-			'yes'
-		]));
+		.options(exclude(options, 'browser'));
 	})
 	.command('run   [sketch] [options]', `Runs app`, yargs => {
 		yargs.positional('sketch', {
@@ -178,7 +172,11 @@ function exclude(obj, excludes) {
 		for (let i = 0; i < keys.length; i++) {
 			if (!excludes.includes[keys[i]]) r[keys[i]] = obj[keys[i]];
 		}
-	} else if (excludes != keys[i]) r[keys[i]] = obj[keys[i]];
+	} else {
+		for (let i = 0; i < keys.length; i++) {
+			if (keys[i] != excludes) r[keys[i]] = obj[keys[i]];
+		}
+	}
 	return r;
 }
 
