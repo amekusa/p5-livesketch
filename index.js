@@ -228,10 +228,8 @@ function getSketches() {
 }
 
 function isProject(dir) {
-	try {
-		let stats = fs.statSync(join(dir, 'sketch.js'));
-		return stats.isFile();
-	} catch { return false }
+	let stats = fs.statSync(join(dir, 'sketch.js'), { throwIfNoEntry: false });
+	return stats ? stats.isFile() : false;
 }
 
 function find(file, dirs, type = 'any') {
