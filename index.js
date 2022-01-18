@@ -296,6 +296,17 @@ commands.clean = tasks.newTask('clean', ['clean:app']);
  */
 tasks.newTask('clean:app', function (resolve, reject) {
 	return cleanDir(dirs.app, resolve, reject);
+
+/**
+ * @task resolve:app
+ * Resolves app directory.
+ */
+tasks.newTask('resolve:app', function (resolve, reject) {
+	if (argv.app) {
+		let app = find(argv.app);
+		return app ? resolve(app) : reject(`No such directory as '${argv.app}'`);
+	}
+	return resolve(dirs.app);
 });
 
 /**
