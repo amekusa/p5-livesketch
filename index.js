@@ -232,8 +232,9 @@ function isProject(dir) {
 	return stats ? stats.isFile() : false;
 }
 
-function find(file, dirs, type = 'any') {
-	if (typeof dirs == 'string') dirs = ['', dirs];
+function find(file, dirs = null, type = 'any') {
+	if (!dirs) dirs = [''];
+	else if (typeof dirs == 'string') dirs = ['', dirs];
 	else dirs.unshift('');
 	for (let dir of dirs) {
 		let r = path.resolve(dir, file);
