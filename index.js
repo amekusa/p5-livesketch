@@ -234,12 +234,22 @@ function isProject(dir) {
 	} catch { return false }
 }
 
-function find(file, dirs) {
+function find(file, dirs, type = 'any') {
 	if (typeof dirs == 'string') dirs = ['', dirs];
 	else dirs.unshift('');
 	for (let dir of dirs) {
 		let r = path.resolve(dir, file);
-		if (fs.existsSync(r)) return r;
+		let stats = fs.statSync(r, { throwIfNoEntry: false });
+		if (!stats) continue;
+		switch (type) {
+		case 'file':
+			if (!stats.isFile()) throw error('WrongFileType');
+			break;
+		case 'dir':
+			if (!stats.isDirectory()) throw error('WrongFileType');
+			break;
+		}
+		return r;
 	}
 	return false;
 }
