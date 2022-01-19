@@ -405,6 +405,12 @@ tasks.newTask('resolve:theme', function (resolve, reject) {
 commands.build = tasks.newTask('build', ['build:sketch', 'build:theme', 'build:p5']);
 
 /**
+ * @task build:sketch
+ * Builds the sketch.
+ */
+tasks.newTask('build:sketch', ['build:sketch:rollup']);
+
+/**
  * @task build:sketch:rollup
  * Builds the sketch with rollup.
  * @requires rollup
@@ -413,6 +419,8 @@ commands.build = tasks.newTask('build', ['build:sketch', 'build:theme', 'build:p
 tasks.newTask('build:sketch:rollup', function (resolve, reject) {
 	let task = this;
 	let sketch = task.dep('sketch');
+	let dest = argv.app || dirs.app;
+
 	let input = {
 		input: sketch,
 		context: 'window', // maybe unnecessary
@@ -426,12 +434,14 @@ tasks.newTask('build:sketch:rollup', function (resolve, reject) {
 			fileName: 'assets/[name]-[hash][extname]'
 		})
 	];
+
 	let output = {
-		file: join(dirs.app, 'sketch.js'),
+		file: join(dest, 'sketch.js'),
 		format: 'es',
 		exports: 'none',
 		sourcemap: true
 	};
+
 	if (argv.watch) {
 		let expr = `[${blue('Rollup')}]`;
 		let options = input;
@@ -471,8 +481,9 @@ tasks.newTask('build:sketch', ['build:sketch:rollup']);
 tasks.newTask('build:theme', function (resolve, reject) {
 	let task = this;
 	let theme = task.dep('theme');
+	let dest = argv.app || dirs.app;
 	return gulp.src(join(theme, '*'))
-		.pipe(gulp.dest(dirs.app))
+		.pipe(gulp.dest(dest))
 		.on('end', resolve);
 
 }, { theme: 'resolve:theme' });
@@ -485,11 +496,12 @@ if (argv.clean) tasks.last.depend('clean:app');
 tasks.newTask('build:p5', function (resolve, reject) {
 	let task = this
 	let base = join(dirs.modules, 'p5', 'lib');
+	let dest = argv.app || dirs.app;
 	return gulp.src([
 			join(base, 'p5.min.js'),
 			join(base, 'addons', '*.min.js')
 		], { base: base })
-		.pipe(gulp.dest(dirs.app))
+		.pipe(gulp.dest(dest))
 		.on('end', resolve);
 });
 if (argv.clean) tasks.last.depend('clean:app');
@@ -504,7 +516,7 @@ commands.run = tasks.newTask('run', function (resolve, reject) {
 		watch: true, // This should activate live reload
 		browser: argv.browser,
 		server: {
-			baseDir: dirs.app,
+			baseDir: argv.app || dirs.app,
 			index: 'index.html'
 		}
 	}, resolve);
