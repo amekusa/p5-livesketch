@@ -429,24 +429,25 @@ tasks.newTask('build:sketch:rollup', function (resolve, reject) {
 	};
 
 	if (argv.watch) {
-		let expr = `[${blue('Rollup')}]`;
-		let options = input;
-		options.output = output;
-		return rollup.watch(options).on('event', ev => {
+		let label = `[${blue('Rollup')}]`;
+		rollup.watch(Object.assign(input, { output })).on('event', ev => {
 			switch (ev.code) {
 			case 'START':
-				console.log(expr+` Watching files...`);
+				console.log(label, `Watching files...`);
 				break;
 			case 'BUNDLE_END':
-				console.log(expr+` Build ${green('Success')}`, ev.result.watchFiles);
+				console.log(label, `Build ${green('Success')}`, ev.result.watchFiles);
 				break;
 			case 'END':
-				return resolve(ev);
+				break;
 			case 'ERROR':
-				return reject(ev);
+				console.error(label, red(`//// ${ev.error.code} ////////`));
+				console.error(label, ev.error);
+				break;
 			}
 		});
 	}
+
 	return rollup.rollup(input).then(bundle => {
 		return bundle.write(output).then(resolve).catch(reject);
 	}).catch(reject);
