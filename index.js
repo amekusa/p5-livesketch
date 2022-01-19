@@ -168,7 +168,7 @@ const argv = yargs.scriptName('p5')
 		})
 		.options(options);
 	})
-	.command('clean [options]', `Cleans files`, filter(options, 'yes'))
+	.command('clean [options]', `Cleans files`, filter(options, ['app', 'yes']))
 	.argv;
 
 
@@ -248,7 +248,7 @@ function getSketches(dir) {
 
 	let files;
 	try   { files = fs.readdirSync(dir, { withFileTypes: true }); }
-	catch { return []; }
+	catch { return sketches; }
 
 	for (let i = 0; i < files.length; i++) {
 		let file = files[i];
@@ -302,13 +302,9 @@ function find(file, type = FTypes.ANY, dir = '.') {
 	return r;
 }
 
-function findOrCreate(file, type = FTypes.FILE, dir = '.', ) {
-	// let found = find(file, type);
-}
-
 function cleanDir(dir, resolve, reject) {
 	if (!fs.existsSync(dir)) return resolve();
-	if (argv.yes) return del([join(dir, '**'), dir]).then(resolve).catch(reject); // No confirm
+	if (argv.clean || argv.yes) return del([join(dir, '**'), dir]).then(resolve).catch(reject); // No prompt
 
 	return prompt({
 		type:    'confirm',
@@ -349,18 +345,8 @@ commands.clean = tasks.newTask('clean', ['clean:app']);
  * Cleans up 'app' directory.
  */
 tasks.newTask('clean:app', function (resolve, reject) {
-	return cleanDir(dirs.app, resolve, reject);
-
-/**
- * @task resolve:app
- * Resolves app directory.
- */
-tasks.newTask('resolve:app', function (resolve, reject) {
-	if (argv.app) {
-		let found = find(argv.app, FTypes.DIR);
-		return found.ok ? resolve(found.path) : reject(found.error);
-	}
-	return resolve(dirs.app);
+	let dir = argv.app || dirs.app;
+	return cleanDir(dir, resolve, reject);
 });
 
 /**
@@ -469,12 +455,6 @@ tasks.newTask('build:sketch:rollup', function (resolve, reject) {
 if (argv.clean) tasks.last.depend('clean:app');
 
 /**
- * @task build:sketch
- * Builds the sketch.
- */
-tasks.newTask('build:sketch', ['build:sketch:rollup']);
-
-/**
  * @task build:theme
  * Builds the theme.
  */
@@ -494,7 +474,7 @@ if (argv.clean) tasks.last.depend('clean:app');
  * Builds p5.js.
  */
 tasks.newTask('build:p5', function (resolve, reject) {
-	let task = this
+	let task = this;
 	let base = join(dirs.modules, 'p5', 'lib');
 	let dest = argv.app || dirs.app;
 	return gulp.src([
@@ -521,7 +501,7 @@ commands.run = tasks.newTask('run', function (resolve, reject) {
 		}
 	}, resolve);
 });
-if (argv.sketch || argv.theme || argv.watch) tasks.last.depend('build');
+if (argv.sketch || argv.theme || argv.watch || argv.clean) tasks.last.depend('build');
 
 /**
  * @task scaffold
