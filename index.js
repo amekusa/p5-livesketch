@@ -23,7 +23,7 @@ const // NPM modules
 	gulp     = require('gulp');
 
 const rp = { // rollup plugins
-	importAssets: require('rollup-plugin-import-assets')
+	url: require('@rollup/plugin-url')
 };
 
 const gp = { // gulp plugins
@@ -416,17 +416,16 @@ tasks.newTask('build:sketch:rollup', function (resolve, reject) {
 	let input = {
 		input: sketch,
 		context: 'window', // maybe unnecessary
-		treeshake: false, // this MUST be false
-		plugins: [
-			rp.importAssets({
-				include: [/.*/],
-				exclude: [/\.e?js$/i],
-				emitAssets: true, // copy assets to output folder
-				fileNames: 'assets/[name]-[hash].[ext]', // name pattern for the asset copied
-				publicPath: '' // public path of the assets (should be empty)
-			})
-		]
+		treeshake: false // this MUST be false
 	};
+	input.plugins = [
+		rp.url({
+			include: '**/*',
+			exclude: '**/*.js',
+			emitFiles: true,
+			fileName: 'assets/[name]-[hash][extname]'
+		})
+	];
 	let output = {
 		file: join(dirs.app, 'sketch.js'),
 		format: 'es',
