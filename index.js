@@ -47,15 +47,43 @@ const dirs = {
 	boilerplates: join(__dirname, 'boilerplates'),
 	modules:      join(__dirname, 'node_modules')
 };
+
 if (local) {
 	dirs.src  = join(cwd, 'sketches');
 	dirs.app  = join(cwd, 'app');
 	dirs.dist = join(cwd, 'dist');
+
 } else {
 	dirs.src  = cwd;
 	dirs.app  = join(cwd, 'p5');
 	dirs.dist = cwd;
 }
+
+// Errors
+const E = {
+	NoSuchFile:    `'%path%' is not found`,
+	WrongFileType: `'%path%' is not a %expectedType%`,
+	SketchMissing: `There is no sketch yet.\nStart your first sketch with 'p5 new' command`,
+	NoSuchSketch:  `No such sketch`,
+	Corrupted:     `Your p5-livesketch install appears to be corrupted.\nPlease reinstall it`
+};
+
+
+//-------- Enums --------//
+
+class Enum {
+	constructor(...keys) {
+		this._keys = keys;
+		for (let i = 0; i < keys.length; i++) this[keys[i]] = keys[i];
+		Object.freeze(this);
+	}
+	check(key) {
+		if (this._keys.includes(key)) return key;
+		throw new Error(`No such key as '${key}'`)
+	}
+}
+
+const FTypes = new Enum('ANY', 'FILE', 'DIR');
 
 
 //-------- Commandline Settings --------//
@@ -63,12 +91,13 @@ if (local) {
 const commands = {
 	ls: () => {
 		let msg;
-		let sketches = getSketches();
+		let sketches = getSketches(dirs.src);
 		if (!sketches.length) msg = 'No sketches found.';
 		else msg = sketches.join('\n');
 		console.log(msg);
 	}
 };
+
 const options = {
 	theme: {
 		alias: 't',
@@ -78,7 +107,7 @@ const options = {
 	app: {
 		alias: 'a',
 		type:  'string',
-		desc:  `App directory to run`
+		desc:  `App directory`
 	},
 	browser: {
 		alias: 'b',
@@ -102,6 +131,7 @@ const options = {
 		desc:  `Automatically answers "yes" to any confirmation prompts`
 	}
 };
+
 const argv = yargs.scriptName('p5')
 	.usage(`$0 [sketch] [options]`, `Builds & Runs a sketch with live preview`, yargs => {
 		yargs.positional('sketch', {
@@ -143,6 +173,21 @@ const argv = yargs.scriptName('p5')
 
 
 //-------- Utilities --------//
+
+function error(name, data = null, msg = null) {
+	if (!msg) msg = (name in E) ? E[name] : '';
+	let r = new Error(format(msg, data));
+	r.name = red(name);
+	return r;
+}
+
+function format(str, data) {
+	let r = str;
+	if (typeof data == 'object') {
+		for (let i in data) r = r.replaceAll(`%${i}%`, data[i]);
+	}
+	return r;
+}
 
 /**
  * @param {object}    obj      - Object
@@ -187,16 +232,6 @@ function timestamp(date = null) {
 		date.getDate().toString().padStart(2, '0');
 }
 
-function error(name, msg = '') {
-	let r = new Error({
-		SketchMissing: `There is no sketch`,
-		NoSuchSketch:  `No such sketch`,
-		ThemeMissing:  `Theme missing`
-	}[name] + (msg ? ` ${msg}` : ''));
-	r.name = red(name);
-	return r;
-}
-
 function handleError(err) {
 	console.suppress();
 	let msg;
@@ -207,11 +242,13 @@ function handleError(err) {
 	// TODO: Wait for all the running tasks finish
 }
 
-function getSketches() {
+function getSketches(dir) {
 	let sketches = [];
 	let projects = [];
-	let base = dirs.src;
-	let files = fs.readdirSync(base, { withFileTypes: true });
+
+	let files;
+	try   { files = fs.readdirSync(dir, { withFileTypes: true }); }
+	catch { return []; }
 
 	for (let i = 0; i < files.length; i++) {
 		let file = files[i];
@@ -221,7 +258,7 @@ function getSketches() {
 			if (matched && !matched[1]) sketches.push(file.name);
 
 		} else if (file.isDirectory()) {
-			if (isProject(join(base, file.name))) projects.push(join(file.name, 'sketch.js'));
+			if (isProject(join(dir, file.name))) projects.push(join(file.name, 'sketch.js'));
 		}
 	}
 	return projects.concat(sketches);
@@ -232,25 +269,41 @@ function isProject(dir) {
 	return stats ? stats.isFile() : false;
 }
 
-function find(file, dirs = null, type = 'any') {
-	if (!dirs) dirs = [''];
-	else if (typeof dirs == 'string') dirs = ['', dirs];
-	else dirs.unshift('');
-	for (let dir of dirs) {
-		let r = path.resolve(dir, file);
-		let stats = fs.statSync(r, { throwIfNoEntry: false });
-		if (!stats) continue;
-		switch (type) {
-		case 'file':
-			if (!stats.isFile()) throw error('WrongFileType');
-			break;
-		case 'dir':
-			if (!stats.isDirectory()) throw error('WrongFileType');
-			break;
-		}
+function find(file, type = FTypes.ANY, dir = '.') {
+	FTypes.check(type);
+	let r = {
+		ok: false,
+		path: path.resolve(dir, file),
+		exists: false,
+		expectedType: type,
+		error: null
+	};
+	r.stats = fs.statSync(r.path, { throwIfNoEntry: false });
+	if (!r.stats) {
+		r.error = error('NoSuchFile', r);
 		return r;
 	}
-	return false;
+	r.exists = true;
+	switch (type) {
+	case FTypes.ANY:
+		r.ok = true;
+		break;
+	case FTypes.FILE:
+		if (r.stats.isFile()) r.ok = true;
+		else r.error = error('WrongFileType', r);
+		break;
+	case FTypes.DIR:
+		if (r.stats.isDirectory()) r.ok = true;
+		else r.error = error('WrongFileType', r);
+		break;
+	default:
+		r.error = error('WrongFileType', r);
+	}
+	return r;
+}
+
+function findOrCreate(file, type = FTypes.FILE, dir = '.', ) {
+	// let found = find(file, type);
 }
 
 function cleanDir(dir, resolve, reject) {
@@ -304,8 +357,8 @@ tasks.newTask('clean:app', function (resolve, reject) {
  */
 tasks.newTask('resolve:app', function (resolve, reject) {
 	if (argv.app) {
-		let app = find(argv.app);
-		return app ? resolve(app) : reject(`No such directory as '${argv.app}'`);
+		let found = find(argv.app, FTypes.DIR);
+		return found.ok ? resolve(found.path) : reject(found.error);
 	}
 	return resolve(dirs.app);
 });
@@ -315,22 +368,23 @@ tasks.newTask('resolve:app', function (resolve, reject) {
  * Resolves the path to the sketch to build.
  */
 tasks.newTask('resolve:sketch', function (resolve, reject) {
+	let dir = dirs.src;
 	if (argv.sketch) {
-		let sketch = find(argv.sketch, dirs.src);
-		return sketch ? resolve(sketch) : reject(error('NoSuchSketch', `as ${argv.sketch}`));
+		let found = find(argv.sketch, FTypes.FILE, dir);
+		return found.ok ? resolve(found.path) : reject(found.error);
 	}
-	let options = getSketches();
-	if (!options.length) return reject(error('SketchMissing'));
-	if (options.length == 1) return resolve(join(dirs.src, options[0]));
+	let sketches = getSketches(dir);
+	if (!sketches.length) return reject(error('SketchMissing'));
+	if (sketches.length == 1) return resolve(join(dir, sketches[0]));
 
 	return prompt({
 		type:    'list',
 		name:    'sketch',
 		message: 'Which sketch do you want to run?',
-		choices: options
+		choices: sketches
 
 	}).then(answer => {
-		return resolve(join(dirs.src, answer.sketch));
+		return resolve(join(dir, answer.sketch));
 	});
 });
 
@@ -339,8 +393,9 @@ tasks.newTask('resolve:sketch', function (resolve, reject) {
  * Resolves the path to the theme.
  */
 tasks.newTask('resolve:theme', function (resolve, reject) {
-	let theme = find(argv.theme || 'default', dirs.themes);
-	return theme ? resolve(theme) : reject(error('ThemeMissing'));
+	let dir = dirs.themes;
+	let found = find(argv.theme || 'default', FTypes.DIR, dir);
+	return found.ok ? resolve(found.path) : reject(error('Currupted'));
 });
 
 /**
